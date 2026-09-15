@@ -128,6 +128,16 @@ public class TicketAssignmentService {
                     existing.setStatus(AssignmentStatus.REASSIGNED);
                     existing.setEndDate(LocalDateTime.now());
                     assignmentRepository.save(existing);
+
+                    if (!existing.getAssignedToUser().getUserId().equals(assignedTo.getUserId())) {
+                        notificationService.notifyUser(
+                                existing.getAssignedToUser(),
+                                ticket,
+                                NotificationType.ASSIGNED,
+                                "Ticket " + ticket.getReferenceNo() + " was reassigned to " +
+                                        assignedTo.getFirstName() + " " + assignedTo.getLastName() + "."
+                        );
+                    }
                 });
 
         TicketStatus oldStatus = ticket.getStatus();
