@@ -26,6 +26,7 @@ public class StudentTicketController {
     private final AttachmentRepository attachmentRepository;
     private final AttachmentService attachmentService;
     private final CommentService commentService;
+    private final FeedbackService feedbackService;
 
     public StudentTicketController(
             TicketService ticketService,
@@ -33,7 +34,8 @@ public class StudentTicketController {
             TicketStatusHistoryRepository historyRepository,
             AttachmentRepository attachmentRepository,
             AttachmentService attachmentService,
-            CommentService commentService
+            CommentService commentService,
+            FeedbackService feedbackService
     ) {
         this.ticketService = ticketService;
         this.categoryRepository = categoryRepository;
@@ -41,6 +43,7 @@ public class StudentTicketController {
         this.attachmentRepository = attachmentRepository;
         this.attachmentService = attachmentService;
         this.commentService = commentService;
+        this.feedbackService = feedbackService;
     }
 
     @GetMapping
@@ -131,6 +134,12 @@ public class StudentTicketController {
                 .toList();
 
         model.addAttribute("comments", publicComments);
+        model.addAttribute("feedback", feedbackService.findForTicket(ticketId).orElse(null));
+        model.addAttribute(
+                "canSubmitFeedback",
+                (ticket.getStatus() == TicketStatus.RESOLVED || ticket.getStatus() == TicketStatus.CLOSED)
+                        && feedbackService.findForTicket(ticketId).isEmpty()
+        );
         return "student-ticket-view";
     }
 
@@ -149,6 +158,29 @@ public class StudentTicketController {
                     comment,
                     CommentType.PUBLIC
             );
+        } catch (RuntimeException ex) {
+            redirectAttributes.addFlashAttribute("error", ex.getMessage());
+        }
+
+        return "redirect:/student/tickets/" + ticketId;
+    }
+
+    @PostMapping("/{ticketId}/feedback")
+    public String feedback(
+            @PathVariable Long ticketId,
+            @RequestParam int rating,
+            @RequestParam(value = "feedbackComment", required = false) String feedbackComment,
+            Authentication authentication,
+            RedirectAttributes redirectAttributes
+    ) {
+        try {
+            feedbackService.submit(
+                    ticketId,
+                    authentication.getName(),
+                    rating,
+                    feedbackComment
+            );
+            redirectAttributes.addFlashAttribute("success", "Thank you for your feedback.");
         } catch (RuntimeException ex) {
             redirectAttributes.addFlashAttribute("error", ex.getMessage());
         }
