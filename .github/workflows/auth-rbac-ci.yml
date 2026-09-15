@@ -1,6 +1,7 @@
 name: Help Desk CI
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - feature/it25101969-auth-rbac
