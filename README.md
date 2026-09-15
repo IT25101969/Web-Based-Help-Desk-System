@@ -2,4 +2,4 @@
 
 Group ID: 2026-Y2-S1-MTR-07
 
-University Help Desk System developed using PHP and MySQL.
+University Help Desk System developed using Java, Springboot and MySQL.
