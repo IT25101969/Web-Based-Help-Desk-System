@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ticket Queue</title><link rel="stylesheet" th:href="@{/css/app.css}"></head>
+<body><div class="topbar"><strong>Support Ticket Queue</strong><div><a th:href="@{/notifications}">Notifications</a></div></div>
+<div class="container"><div class="card"><h1>Tickets</h1>
+<table><thead><tr><th>Reference</th><th>Subject</th><th>Department</th><th>Priority</th><th>Status</th><th>Created</th></tr></thead>
+<tbody><tr th:each="ticket : ${tickets}">
+<td><a th:href="@{${basePath} + '/tickets/' + ${ticket.ticketId}}" th:text="${ticket.referenceNo}"></a></td>
+<td th:text="${ticket.subject}"></td>
+<td th:text="${ticket.category.department != null ? ticket.category.department.departmentName : 'Manual routing'}"></td>
+<td th:text="${ticket.priority}"></td><td><span class="badge" th:text="${ticket.status}"></span></td>
+<td th:text="${#temporals.format(ticket.createdDate,'yyyy-MM-dd HH:mm')}"></td></tr>
+<tr th:if="${#lists.isEmpty(tickets)}"><td colspan="6" class="muted">No tickets in your queue.</td></tr>
+</tbody></table></div></div></body></html>
