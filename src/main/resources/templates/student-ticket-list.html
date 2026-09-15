@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>My Tickets</title><link rel="stylesheet" th:href="@{/css/app.css}"></head>
+<body>
+<div class="topbar"><strong>University Help Desk</strong><div><a th:href="@{/student/dashboard}">Dashboard</a><a th:href="@{/faq}">FAQ</a><a th:href="@{/notifications}">Notifications</a></div></div>
+<div class="container">
+<div class="actions"><a class="btn" th:href="@{/student/tickets/new}">Submit New Ticket</a></div>
+<div class="card">
+<h1>My Tickets</h1>
+<table>
+<thead><tr><th>Reference</th><th>Subject</th><th>Category</th><th>Priority</th><th>Status</th><th>Created</th></tr></thead>
+<tbody>
+<tr th:each="ticket : ${tickets}">
+<td><a th:href="@{/student/tickets/{id}(id=${ticket.ticketId})}" th:text="${ticket.referenceNo}"></a></td>
+<td th:text="${ticket.subject}"></td>
+<td th:text="${ticket.category.categoryName}"></td>
+<td th:text="${ticket.priority}"></td>
+<td><span class="badge" th:text="${ticket.status}"></span></td>
+<td th:text="${#temporals.format(ticket.createdDate,'yyyy-MM-dd HH:mm')}"></td>
+</tr>
+<tr th:if="${#lists.isEmpty(tickets)}"><td colspan="6" class="muted">No tickets yet.</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+</body></html>
