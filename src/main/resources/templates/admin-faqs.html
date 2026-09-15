@@ -1,9 +1,174 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>FAQ Administration</title><link rel="stylesheet" th:href="@{/css/app.css}"></head>
-<body><div class="topbar"><strong>FAQ Administration</strong><div><a th:href="@{/admin/dashboard}">Dashboard</a><a th:href="@{/faq}">Published FAQ</a></div></div>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FAQ Administration | University Help Desk</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <style>
+        .faq-table td { vertical-align: middle; }
+        .status-DRAFT { background: #fef3c7; color: #92400e; font-weight: 700; }
+        .status-PUBLISHED { background: #dcfce7; color: #166534; font-weight: 700; }
+        .status-ARCHIVED { background: #fee2e2; color: #991b1b; font-weight: 700; }
+        .nav-links { display: flex; gap: 12px; align-items: center; }
+        .edit-panel { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+<div class="topbar">
+    <strong>FAQ Administration</strong>
+    <div class="nav-links">
+        <a th:href="@{/admin/dashboard}">Admin Dashboard</a>
+        <a th:href="@{/admin/faqs/search-analytics}">Search Analytics</a>
+        <a th:href="@{/faq}" target="_blank">Published FAQ &nearr;</a>
+        <a th:href="@{/logout}">Sign Out</a>
+    </div>
+</div>
+
 <div class="container">
-<div th:if="${success}" class="alert success" th:text="${success}"></div>
-<div class="card"><h1>Create FAQ</h1><form th:action="@{/admin/faqs}" method="post"><label>Question<input name="question" required maxlength="300"></label><label>Answer<textarea name="answer" rows="5" required></textarea></label><label>Category<select name="categoryId"><option value="">General</option><option th:each="c : ${categories}" th:value="${c.categoryId}" th:text="${c.categoryName}"></option></select></label><label>Status<select name="status"><option>DRAFT</option><option>PUBLISHED</option></select></label><button class="btn" type="submit">Create FAQ</button></form></div>
-<div class="card"><h1>Manage FAQ</h1><div class="card" th:each="faq : ${faqs}"><form th:action="@{/admin/faqs/{id}(id=${faq.faqId})}" method="post"><label>Question<input name="question" th:value="${faq.question}" required></label><label>Answer<textarea name="answer" rows="4" th:text="${faq.answer}" required></textarea></label><label>Category<select name="categoryId"><option value="">General</option><option th:each="c : ${categories}" th:value="${c.categoryId}" th:text="${c.categoryName}" th:selected="${faq.category != null and faq.category.categoryId == c.categoryId}"></option></select></label><label>Status<select name="status"><option th:each="s : ${T(com.university.helpdesk.entity.FaqStatus).values()}" th:value="${s}" th:text="${s}" th:selected="${s == faq.status}"></option></select></label><div class="actions"><button class="btn" type="submit">Save</button></div></form><form th:if="${faq.status.name() != 'ARCHIVED'}" th:action="@{/admin/faqs/{id}/archive(id=${faq.faqId})}" method="post"><button class="btn danger" type="submit">Archive</button></form></div></div>
-</div></body></html>
+    <div th:if="${success}" class="alert success" th:text="${success}"></div>
+    <div th:if="${error}" class="alert error" th:text="${error}"></div>
+
+    <!-- Create FAQ Section -->
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+            <div>
+                <h1 style="margin: 0 0 6px;">Create Knowledge Base FAQ</h1>
+                <p class="muted" style="margin: 0;">Add a new question and verified solution for student guidance.</p>
+            </div>
+            <a th:href="@{/admin/faqs/search-analytics}" class="btn secondary">View Search Analytics &rarr;</a>
+        </div>
+
+        <form th:action="@{/admin/faqs}" method="post" style="margin-top: 18px;">
+            <label for="newQuestion">Question <span class="muted">(max 300 chars)</span></label>
+            <input type="text" id="newQuestion" name="question" required maxlength="300" placeholder="e.g. How do I configure university email on iOS/Android?">
+
+            <label for="newAnswer">Answer / Solution</label>
+            <textarea id="newAnswer" name="answer" rows="5" required placeholder="Step-by-step instructions or direct solution for the user..."></textarea>
+
+            <div class="grid grid-2" style="margin-top: 10px;">
+                <div>
+                    <label for="newCategory">Category</label>
+                    <select id="newCategory" name="categoryId">
+                        <option value="">General (No Category)</option>
+                        <option th:each="c : ${categories}" th:value="${c.categoryId}" th:text="${c.categoryName}"></option>
+                    </select>
+                </div>
+                <div>
+                    <label for="newStatus">Initial Status</label>
+                    <select id="newStatus" name="status">
+                        <option value="DRAFT">DRAFT (Hidden from end users)</option>
+                        <option value="PUBLISHED">PUBLISHED (Immediately live in FAQ)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="margin-top: 18px;">
+                <button class="btn" type="submit">Create FAQ Entry</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Manage FAQs Section -->
+    <div class="card">
+        <h2 style="margin-top: 0;">Manage Existing FAQs (<span th:text="${#lists.size(faqs)}"></span>)</h2>
+
+        <div th:if="${#lists.isEmpty(faqs)}" class="muted">No FAQ entries found. Create one above.</div>
+
+        <div th:if="${!#lists.isEmpty(faqs)}" style="overflow-x: auto;">
+            <table class="faq-table">
+                <thead>
+                <tr>
+                    <th style="width: 35%;">Question</th>
+                    <th>Category</th>
+                    <th>Status</th>
+                    <th>Last Updated</th>
+                    <th style="width: 25%;">Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="faq : ${faqs}">
+                    <td>
+                        <strong th:text="${faq.question}"></strong>
+                        <div class="muted" style="font-size: 13px; max-height: 40px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" th:text="${faq.answer}"></div>
+                    </td>
+                    <td>
+                        <span th:if="${faq.category != null}" class="badge" th:text="${faq.category.categoryName}"></span>
+                        <span th:if="${faq.category == null}" class="muted">General</span>
+                    </td>
+                    <td>
+                        <span class="badge" th:classappend="'status-' + ${faq.status.name()}" th:text="${faq.status.name()}"></span>
+                    </td>
+                    <td class="muted" style="font-size: 13px;">
+                        <span th:if="${faq.updatedDate != null}" th:text="${#temporals.format(faq.updatedDate, 'yyyy-MM-dd HH:mm')}"></span>
+                        <span th:if="${faq.updatedDate == null}" th:text="${#temporals.format(faq.createdDate, 'yyyy-MM-dd HH:mm')}"></span>
+                    </td>
+                    <td>
+                        <div class="actions">
+                            <button type="button" class="btn secondary" style="padding: 6px 10px; font-size: 12px;"
+                                    th:onclick="'document.getElementById(\'edit-box-' + ${faq.faqId} + '\').style.display = (document.getElementById(\'edit-box-' + ${faq.faqId} + '\').style.display === \'none\' ? \'block\' : \'none\');'">
+                                Edit
+                            </button>
+
+                            <!-- Quick Publish Button -->
+                            <form th:if="${faq.status.name() != 'PUBLISHED'}" th:action="@{/admin/faqs/{id}/publish(id=${faq.faqId})}" method="post" style="display:inline;">
+                                <button class="btn" style="padding: 6px 10px; font-size: 12px; background: #16a34a;" type="submit">Publish</button>
+                            </form>
+
+                            <!-- Quick Archive Button -->
+                            <form th:if="${faq.status.name() != 'ARCHIVED'}" th:action="@{/admin/faqs/{id}/archive(id=${faq.faqId})}" method="post" style="display:inline;">
+                                <button class="btn danger" style="padding: 6px 10px; font-size: 12px;" type="submit">Archive</button>
+                            </form>
+                        </div>
+
+                        <!-- Collapsible Inline Edit Form -->
+                        <div th:id="'edit-box-' + ${faq.faqId}" class="edit-panel" style="display: none;">
+                            <form th:action="@{/admin/faqs/{id}(id=${faq.faqId})}" method="post">
+                                <label>Question</label>
+                                <input type="text" name="question" th:value="${faq.question}" required maxlength="300">
+
+                                <label>Answer</label>
+                                <textarea name="answer" rows="4" required th:text="${faq.answer}"></textarea>
+
+                                <div class="grid grid-2" style="margin-top: 8px;">
+                                    <div>
+                                        <label>Category</label>
+                                        <select name="categoryId">
+                                            <option value="">General (No Category)</option>
+                                            <option th:each="c : ${categories}"
+                                                    th:value="${c.categoryId}"
+                                                    th:text="${c.categoryName}"
+                                                    th:selected="${faq.category != null and faq.category.categoryId == c.categoryId}">
+                                            </option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label>Status</label>
+                                        <select name="status">
+                                            <option th:each="s : ${T(com.university.helpdesk.entity.FaqStatus).values()}"
+                                                    th:value="${s}"
+                                                    th:text="${s.name()}"
+                                                    th:selected="${s == faq.status}">
+                                            </option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="actions" style="margin-top: 12px;">
+                                    <button class="btn" type="submit" style="font-size: 12px; padding: 6px 12px;">Save Changes</button>
+                                    <button type="button" class="btn secondary" style="font-size: 12px; padding: 6px 12px;"
+                                            th:onclick="'document.getElementById(\'edit-box-' + ${faq.faqId} + '\').style.display=\'none\';'">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+</body>
+</html>
