@@ -12,6 +12,8 @@ import java.util.List;
 public interface ActivityLogRepository
         extends JpaRepository<ActivityLog, Long> {
 
+    boolean existsByUserUserId(Long userId);
+
     List<ActivityLog> findTop15ByOrderByTimestampDesc();
 
     @Query("SELECT DISTINCT a.action FROM ActivityLog a ORDER BY a.action ASC")
@@ -30,4 +32,4 @@ public interface ActivityLogRepository
             @Param("endExclusive") LocalDateTime endExclusive,
             Pageable pageable
     );
-}
+}
