@@ -136,6 +136,26 @@ public class TicketService {
     }
 
     @Transactional(readOnly = true)
+    public List<Ticket> getSupportTickets(String universityId) {
+        UserAccount user = userAccountRepository.findByUniversityId(universityId)
+                .orElseThrow(() -> new IllegalArgumentException("User was not found."));
+
+        List<Long> departmentIds = userDepartmentRepository
+                .findByUserUserIdAndActiveTrue(user.getUserId())
+                .stream()
+                .map(membership -> membership.getDepartment().getDepartmentId())
+                .distinct()
+                .toList();
+
+        if (departmentIds.isEmpty()) {
+            return List.of();
+        }
+
+        return ticketRepository
+                .findByCategoryDepartmentDepartmentIdInOrderByCreatedDateDesc(departmentIds);
+    }
+
+    @Transactional(readOnly = true)
     public Ticket getTicket(Long ticketId) {
         return ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new IllegalArgumentException("Ticket was not found."));
