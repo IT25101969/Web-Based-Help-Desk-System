@@ -6,6 +6,7 @@ import com.university.helpdesk.repository.*;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 
 import java.util.List;
 
@@ -13,6 +14,7 @@ import java.util.List;
 public class SupportDataInitializer {
 
     @Bean
+    @Order(2)
     CommandLineRunner initializeSupportData(
             UserAccountRepository userAccountRepository,
             DepartmentRepository departmentRepository,
