@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>User Administration</title><link rel="stylesheet" th:href="@{/css/app.css}"></head>
+<body>
+<div class="topbar"><strong>User Administration</strong><div><a th:href="@{/admin/dashboard}">Dashboard</a><a th:href="@{/admin/reports}">Reports</a></div></div>
+<div class="container">
+<div th:if="${success}" class="alert success" th:text="${success}"></div><div th:if="${error}" class="alert error" th:text="${error}"></div>
+<div class="card"><h1>Create User</h1><form th:action="@{/admin/users}" method="post">
+<div class="grid grid-2"><label>University ID<input name="universityId" required></label><label>Email<input name="email" type="email" required></label><label>First name<input name="firstName" required></label><label>Last name<input name="lastName" required></label><label>Initial password<input name="password" type="password" minlength="8" required></label><label>Role<select name="roleId" required><option th:each="r : ${roles}" th:value="${r.roleId}" th:text="${r.roleName}"></option></select></label></div>
+<button class="btn" type="submit">Create Account</button></form></div>
+<div class="card"><h1>Accounts</h1><table><thead><tr><th>User</th><th>Roles</th><th>Status</th><th>Failed Attempts</th><th>Last Login</th><th>Actions</th></tr></thead><tbody>
+<tr th:each="user : ${users}" th:classappend="${user.accountStatus.name() == 'LOCKED' or user.failedLoginAttempts >= 3} ? 'alert error'">
+<td><strong th:text="${user.universityId}"></strong><br><span class="muted" th:text="${user.email}"></span><br><span th:text="${user.firstName + ' ' + user.lastName}"></span></td>
+<td><span th:each="r : ${roleMap[user.userId]}" class="badge" th:text="${r}"></span></td>
+<td th:text="${user.accountStatus}"></td><td th:text="${user.failedLoginAttempts}"></td><td th:text="${user.lastLoginAt != null ? #temporals.format(user.lastLoginAt,'yyyy-MM-dd HH:mm') : 'Never'}"></td>
+<td><form th:action="@{/admin/users/{id}/status(id=${user.userId})}" method="post"><select name="status"><option th:each="s : ${statuses}" th:value="${s}" th:text="${s}" th:selected="${s == user.accountStatus}"></option></select><button class="btn secondary" type="submit">Update Status</button></form>
+<form th:action="@{/admin/users/{id}/role(id=${user.userId})}" method="post"><select name="roleId"><option th:each="r : ${roles}" th:value="${r.roleId}" th:text="${r.roleName}"></option></select><button class="btn" type="submit">Add Role</button></form></td>
+</tr></tbody></table></div>
+</div></body></html>
