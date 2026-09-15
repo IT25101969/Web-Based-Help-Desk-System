@@ -118,6 +118,11 @@
         Please contact the system administrator.
     </div>
 
+    <!-- Successful password reset -->
+    <div th:if="${param.reset}" class="message success">
+        Your password has been reset successfully. You can now sign in.
+    </div>
+
     <!-- Successful logout -->
     <div th:if="${param.logout}" class="message success">
         You have been logged out successfully.
