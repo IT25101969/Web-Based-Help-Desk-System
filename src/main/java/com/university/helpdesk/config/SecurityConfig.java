@@ -84,7 +84,8 @@ public class SecurityConfig {
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/staff/tickets/*/status",
-                                "/staff/tickets/*/comments"
+                                "/staff/tickets/*/comments",
+                                "/staff/tickets/*/priority"
                         ).access(new WebExpressionAuthorizationManager(
                                 "hasAnyRole('Help Desk Support Staff','Department Support Team Member') " +
                                         "and hasAuthority('UPDATE_TICKET')"
@@ -109,7 +110,8 @@ public class SecurityConfig {
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/manager/tickets/*/status",
-                                "/manager/tickets/*/comments"
+                                "/manager/tickets/*/comments",
+                                "/manager/tickets/*/priority"
                         ).access(new WebExpressionAuthorizationManager(
                                 "hasRole('Department Manager') and hasAuthority('UPDATE_TICKET')"
                         ))
@@ -132,7 +134,8 @@ public class SecurityConfig {
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/admin/tickets/*/status",
-                                "/admin/tickets/*/comments"
+                                "/admin/tickets/*/comments",
+                                "/admin/tickets/*/priority"
                         ).access(new WebExpressionAuthorizationManager(
                                 "hasRole('System Administrator') and hasAuthority('UPDATE_TICKET')"
                         ))

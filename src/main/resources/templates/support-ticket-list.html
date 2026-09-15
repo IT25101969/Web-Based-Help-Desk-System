@@ -1,14 +1,114 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ticket Queue</title><link rel="stylesheet" th:href="@{/css/app.css}"></head>
-<body><div class="topbar"><strong>Support Ticket Queue</strong><div><a th:href="@{/notifications}">Notifications</a></div></div>
-<div class="container"><div class="card"><h1>Tickets</h1>
-<table><thead><tr><th>Reference</th><th>Subject</th><th>Department</th><th>Priority</th><th>Status</th><th>Created</th></tr></thead>
-<tbody><tr th:each="ticket : ${tickets}">
-<td><a th:href="@{${basePath} + '/tickets/' + ${ticket.ticketId}}" th:text="${ticket.referenceNo}"></a></td>
-<td th:text="${ticket.subject}"></td>
-<td th:text="${ticket.category.department != null ? ticket.category.department.departmentName : 'Manual routing'}"></td>
-<td th:text="${ticket.priority}"></td><td><span class="badge" th:text="${ticket.status}"></span></td>
-<td th:text="${#temporals.format(ticket.createdDate,'yyyy-MM-dd HH:mm')}"></td></tr>
-<tr th:if="${#lists.isEmpty(tickets)}"><td colspan="6" class="muted">No tickets in your queue.</td></tr>
-</tbody></table></div></div></body></html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Ticket Queue - Help Desk</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<div class="topbar">
+    <strong>Support Ticket Queue</strong>
+    <div>
+        <a th:href="@{/notifications}">Notifications</a>
+        <a th:href="@{${basePath} + '/tickets'}">Refresh</a>
+        <a th:href="@{/logout}">Sign Out</a>
+    </div>
+</div>
+
+<div class="container">
+    <div class="card">
+        <h1>Ticket Queue</h1>
+        <p class="muted">Manage and process assigned and unassigned student support tickets.</p>
+
+        <!-- Filter Bar -->
+        <form th:action="@{${basePath} + '/tickets'}" method="get" style="margin-bottom: 20px; background: #f8fafc; padding: 16px; border-radius: 8px; border: 1px solid #e2e8f0;">
+            <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); align-items: end;">
+                <div>
+                    <label for="filter-status">Status</label>
+                    <select id="filter-status" name="status">
+                        <option value="">All Statuses</option>
+                        <option th:each="s : ${statuses}" th:value="${s}" th:text="${s}" th:selected="${s == selectedStatus}"></option>
+                    </select>
+                </div>
+                <div>
+                    <label for="filter-priority">Priority</label>
+                    <select id="filter-priority" name="priority">
+                        <option value="">All Priorities</option>
+                        <option th:each="p : ${priorities}" th:value="${p}" th:text="${p}" th:selected="${p == selectedPriority}"></option>
+                    </select>
+                </div>
+                <div th:if="${basePath == '/admin'}">
+                    <label for="filter-department">Department</label>
+                    <select id="filter-department" name="departmentId">
+                        <option value="">All Departments</option>
+                        <option th:each="d : ${departments}" th:value="${d.departmentId}" th:text="${d.departmentName}" th:selected="${d.departmentId == selectedDepartmentId}"></option>
+                    </select>
+                </div>
+                <div th:if="${basePath == '/admin'}">
+                    <label style="display: flex; align-items: center; gap: 8px; margin-top: 24px; cursor: pointer;">
+                        <input type="checkbox" name="unmappedOnly" value="true" th:checked="${selectedUnmappedOnly}" style="width: auto; margin: 0;">
+                        <span>Unmapped Tickets Only</span>
+                    </label>
+                </div>
+                <div>
+                    <label for="filter-assignment">Assignment</label>
+                    <select id="filter-assignment" name="assignmentState">
+                        <option value="">All Tickets</option>
+                        <option value="ASSIGNED" th:selected="${selectedAssignmentState == 'ASSIGNED'}">Assigned Only</option>
+                        <option value="UNASSIGNED" th:selected="${selectedAssignmentState == 'UNASSIGNED'}">Unassigned Only</option>
+                    </select>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn" type="submit">Filter</button>
+                    <a th:href="@{${basePath} + '/tickets'}" class="btn secondary" style="text-align: center;">Reset</a>
+                </div>
+            </div>
+        </form>
+
+        <!-- Queue Table -->
+        <table>
+            <thead>
+            <tr>
+                <th>Reference</th>
+                <th>Subject</th>
+                <th>Category</th>
+                <th>Department</th>
+                <th>Priority</th>
+                <th>Status</th>
+                <th>Assignee</th>
+                <th>Created</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="ticket : ${tickets}">
+                <td>
+                    <a th:href="@{${basePath} + '/tickets/' + ${ticket.ticketId}}" th:text="${ticket.referenceNo}" style="font-weight: 600;"></a>
+                </td>
+                <td th:text="${ticket.subject}"></td>
+                <td th:text="${ticket.category != null ? ticket.category.categoryName : 'N/A'}"></td>
+                <td>
+                    <span th:if="${ticket.category != null && ticket.category.department != null}" th:text="${ticket.category.department.departmentName}"></span>
+                    <span th:if="${ticket.category == null || ticket.category.department == null}" class="badge" style="background: #fee2e2; color: #991b1b; font-weight: 600;">Manual routing required</span>
+                </td>
+                <td>
+                    <span class="badge" th:text="${ticket.priority}"></span>
+                </td>
+                <td>
+                    <span class="badge" th:text="${ticket.status}"></span>
+                </td>
+                <td>
+                    <span th:if="${assigneeMap[ticket.ticketId] != null}" th:text="${assigneeMap[ticket.ticketId].assignedToUser.firstName + ' ' + assigneeMap[ticket.ticketId].assignedToUser.lastName}"></span>
+                    <span th:if="${assigneeMap[ticket.ticketId] == null}" class="muted">Unassigned</span>
+                </td>
+                <td th:text="${#temporals.format(ticket.createdDate, 'yyyy-MM-dd HH:mm')}"></td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(tickets)}">
+                <td colspan="8" class="muted" style="text-align: center; padding: 28px;">No tickets found matching current criteria.</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+</body>
+</html>

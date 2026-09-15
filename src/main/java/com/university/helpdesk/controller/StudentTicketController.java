@@ -128,10 +128,7 @@ public class StudentTicketController {
                 attachmentRepository.findByTicketTicketIdOrderByUploadedDateAsc(ticketId)
         );
 
-        List<UserComment> publicComments = commentService.getComments(ticketId)
-                .stream()
-                .filter(comment -> comment.getCommentType() == CommentType.PUBLIC)
-                .toList();
+        List<UserComment> publicComments = commentService.getPublicComments(ticketId);
 
         model.addAttribute("comments", publicComments);
         model.addAttribute("feedback", feedbackService.findForTicket(ticketId).orElse(null));

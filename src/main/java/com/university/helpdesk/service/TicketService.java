@@ -3,6 +3,7 @@ package com.university.helpdesk.service;
 import com.university.helpdesk.entity.*;
 import com.university.helpdesk.repository.*;
 
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +27,8 @@ public class TicketService {
     private final UserDepartmentRepository userDepartmentRepository;
     private final UserRoleRepository userRoleRepository;
     private final NotificationService notificationService;
+    private final TicketAssignmentRepository assignmentRepository;
+    private final ActivityLogService activityLogService;
 
     public TicketService(
             TicketRepository ticketRepository,
@@ -37,7 +40,9 @@ public class TicketService {
             TicketStatusHistoryRepository historyRepository,
             UserDepartmentRepository userDepartmentRepository,
             UserRoleRepository userRoleRepository,
-            NotificationService notificationService
+            NotificationService notificationService,
+            TicketAssignmentRepository assignmentRepository,
+            ActivityLogService activityLogService
     ) {
         this.ticketRepository = ticketRepository;
         this.categoryRepository = categoryRepository;
@@ -49,6 +54,8 @@ public class TicketService {
         this.userDepartmentRepository = userDepartmentRepository;
         this.userRoleRepository = userRoleRepository;
         this.notificationService = notificationService;
+        this.assignmentRepository = assignmentRepository;
+        this.activityLogService = activityLogService;
     }
 
     @Transactional
@@ -136,7 +143,65 @@ public class TicketService {
     }
 
     @Transactional(readOnly = true)
+    public Ticket getAuthorizedSupportTicket(Long ticketId, String universityId) {
+        Ticket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new IllegalArgumentException("Ticket was not found."));
+
+        UserAccount user = userAccountRepository.findByUniversityId(universityId)
+                .orElseThrow(() -> new IllegalArgumentException("User was not found."));
+
+        if (user.getAccountStatus() != AccountStatus.ACTIVE) {
+            throw new AccessDeniedException("Account is inactive.");
+        }
+
+        List<UserRole> activeRoles = userRoleRepository.findByUserUserIdAndActiveTrue(user.getUserId());
+        boolean isAdmin = activeRoles.stream()
+                .anyMatch(r -> "System Administrator".equals(r.getRole().getRoleName()));
+
+        if (isAdmin) {
+            return ticket;
+        }
+
+        Department department = ticket.getCategory() != null ? ticket.getCategory().getDepartment() : null;
+        if (department == null) {
+            throw new AccessDeniedException("This ticket has no mapped department and requires manual routing by a System Administrator.");
+        }
+
+        boolean isSupport = activeRoles.stream()
+                .anyMatch(r -> {
+                    String name = r.getRole().getRoleName();
+                    return "Help Desk Support Staff".equals(name)
+                            || "Department Support Team Member".equals(name)
+                            || "Department Manager".equals(name);
+                });
+
+        if (!isSupport) {
+            throw new AccessDeniedException("Access denied: insufficient privileges.");
+        }
+
+        boolean isMember = userDepartmentRepository.existsByUserUserIdAndDepartmentDepartmentIdAndActiveTrue(
+                user.getUserId(),
+                department.getDepartmentId()
+        );
+
+        if (!isMember) {
+            throw new AccessDeniedException("You are not authorized to access tickets from this department.");
+        }
+
+        return ticket;
+    }
+
+    @Transactional(readOnly = true)
     public List<Ticket> getSupportTickets(String universityId) {
+        return getSupportTicketsWithFilters(universityId, null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Ticket> getSupportTicketsWithFilters(
+            String universityId,
+            TicketStatus status,
+            TicketPriority priority
+    ) {
         UserAccount user = userAccountRepository.findByUniversityId(universityId)
                 .orElseThrow(() -> new IllegalArgumentException("User was not found."));
 
@@ -151,8 +216,7 @@ public class TicketService {
             return List.of();
         }
 
-        return ticketRepository
-                .findByCategoryDepartmentDepartmentIdInOrderByCreatedDateDesc(departmentIds);
+        return ticketRepository.findByDepartmentIdsWithFilters(departmentIds, status, priority);
     }
 
     @Transactional(readOnly = true)
@@ -166,6 +230,16 @@ public class TicketService {
         return ticketRepository.findAllByOrderByCreatedDateDesc();
     }
 
+    @Transactional(readOnly = true)
+    public List<Ticket> getAdminTicketsWithFilters(
+            Long departmentId,
+            boolean unmappedOnly,
+            TicketStatus status,
+            TicketPriority priority
+    ) {
+        return ticketRepository.findAdminTicketsWithFilters(departmentId, unmappedOnly, status, priority);
+    }
+
     @Transactional
     public Ticket changeStatus(
             Long ticketId,
@@ -173,7 +247,7 @@ public class TicketService {
             String changedByUniversityId,
             String reason
     ) {
-        Ticket ticket = getTicket(ticketId);
+        Ticket ticket = getAuthorizedSupportTicket(ticketId, changedByUniversityId);
         UserAccount actor = userAccountRepository.findByUniversityId(changedByUniversityId)
                 .orElseThrow(() -> new IllegalArgumentException("User was not found."));
 
@@ -183,14 +257,37 @@ public class TicketService {
             return ticket;
         }
 
+        boolean valid = switch (oldStatus) {
+            case NEW -> newStatus == TicketStatus.ASSIGNED || newStatus == TicketStatus.IN_PROGRESS || newStatus == TicketStatus.ESCALATED;
+            case ASSIGNED -> newStatus == TicketStatus.IN_PROGRESS || newStatus == TicketStatus.ESCALATED || newStatus == TicketStatus.RESOLVED;
+            case IN_PROGRESS -> newStatus == TicketStatus.ESCALATED || newStatus == TicketStatus.RESOLVED;
+            case ESCALATED -> newStatus == TicketStatus.ASSIGNED || newStatus == TicketStatus.IN_PROGRESS || newStatus == TicketStatus.RESOLVED;
+            case RESOLVED -> newStatus == TicketStatus.CLOSED || newStatus == TicketStatus.IN_PROGRESS;
+            case CLOSED -> false;
+        };
+
+        if (!valid) {
+            throw new IllegalArgumentException("Invalid status transition from " + oldStatus + " to " + newStatus);
+        }
+
         ticket.setStatus(newStatus);
 
-        if (newStatus == TicketStatus.RESOLVED) {
+        if (oldStatus == TicketStatus.RESOLVED && newStatus == TicketStatus.IN_PROGRESS) {
+            ticket.setResolvedDate(null);
+        } else if (newStatus == TicketStatus.RESOLVED && ticket.getResolvedDate() == null) {
             ticket.setResolvedDate(LocalDateTime.now());
         }
 
         if (newStatus == TicketStatus.CLOSED) {
-            ticket.setClosedDate(LocalDateTime.now());
+            if (ticket.getClosedDate() == null) {
+                ticket.setClosedDate(LocalDateTime.now());
+            }
+            List<TicketAssignment> activeAssignments = assignmentRepository.findByTicketTicketIdAndStatus(ticketId, AssignmentStatus.ACTIVE);
+            for (TicketAssignment a : activeAssignments) {
+                a.setStatus(AssignmentStatus.COMPLETED);
+                a.setEndDate(LocalDateTime.now());
+                assignmentRepository.save(a);
+            }
         }
 
         ticketRepository.save(ticket);
@@ -218,6 +315,69 @@ public class TicketService {
                 "Ticket " + ticket.getReferenceNo() + " status changed to " +
                         newStatus.name().replace('_', ' ').toLowerCase(Locale.ROOT) + "."
         );
+
+        if (newStatus == TicketStatus.ESCALATED) {
+            Department dept = ticket.getCategory() != null ? ticket.getCategory().getDepartment() : null;
+            if (dept != null) {
+                List<UserDepartment> deptMembers = userDepartmentRepository.findByDepartmentDepartmentIdAndActiveTrue(dept.getDepartmentId());
+                boolean notifiedManager = false;
+                for (UserDepartment ud : deptMembers) {
+                    UserAccount u = ud.getUser();
+                    boolean isManager = userRoleRepository.findByUserUserIdAndActiveTrue(u.getUserId()).stream()
+                            .anyMatch(ur -> "Department Manager".equals(ur.getRole().getRoleName()));
+                    if (isManager) {
+                        notificationService.notifyUser(u, ticket, NotificationType.ESCALATED,
+                                "Ticket " + ticket.getReferenceNo() + " in " + dept.getDepartmentName() + " has been escalated.");
+                        notifiedManager = true;
+                    }
+                }
+                if (!notifiedManager) {
+                    for (UserDepartment ud : deptMembers) {
+                        notificationService.notifyUser(ud.getUser(), ticket, NotificationType.ESCALATED,
+                                "Ticket " + ticket.getReferenceNo() + " in " + dept.getDepartmentName() + " has been escalated.");
+                    }
+                }
+            }
+        }
+
+        return ticket;
+    }
+
+    @Transactional
+    public Ticket updatePriority(
+            Long ticketId,
+            TicketPriority newPriority,
+            String changedByUniversityId
+    ) {
+        Ticket ticket = getAuthorizedSupportTicket(ticketId, changedByUniversityId);
+        UserAccount actor = userAccountRepository.findByUniversityId(changedByUniversityId)
+                .orElseThrow(() -> new IllegalArgumentException("User was not found."));
+
+        if (newPriority == null || newPriority == ticket.getPriority()) {
+            return ticket;
+        }
+
+        TicketPriority oldPriority = ticket.getPriority();
+        ticket.setPriority(newPriority);
+        ticketRepository.save(ticket);
+
+        activityLogService.log(
+                actor,
+                "PRIORITY_CHANGED: " + oldPriority + " -> " + newPriority,
+                "TICKET",
+                ticket.getTicketId(),
+                null
+        );
+
+        assignmentRepository.findFirstByTicketTicketIdAndStatusOrderByAssignedDateDesc(ticketId, AssignmentStatus.ACTIVE)
+                .ifPresent(active -> {
+                    notificationService.notifyUser(
+                            active.getAssignedToUser(),
+                            ticket,
+                            NotificationType.UPDATED,
+                            "Ticket " + ticket.getReferenceNo() + " priority changed to " + newPriority + "."
+                    );
+                });
 
         return ticket;
     }
