@@ -19,6 +19,7 @@ import java.util.Map;
 public class RbacPermissionInitializer {
 
     @Bean
+    @org.springframework.core.annotation.Order(3)
     CommandLineRunner initializeRbacPermissions(
             RoleRepository roleRepository,
             PermissionRepository permissionRepository,
