@@ -135,7 +135,7 @@ public class ReportController {
 
     private String csv(String value) {
         if (value == null) return "";
-        String escaped = value.replace(""", """");
-        return """ + escaped + """;
+        String escaped = value.replace("\"", "\"\"");
+        return "\"" + escaped + "\"";
     }
 }
