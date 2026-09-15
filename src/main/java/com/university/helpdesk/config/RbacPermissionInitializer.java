@@ -119,8 +119,6 @@ public class RbacPermissionInitializer {
             matrix.put(
                     "System Administrator",
                     List.of(
-                            submitTicket,
-                            viewOwnTickets,
                             viewAllTickets,
                             assignTicket,
                             updateTicket,
