@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Notifications</title><link rel="stylesheet" th:href="@{/css/app.css}"></head>
+<body><div class="topbar"><strong>Notifications</strong><div><a th:href="@{/dashboard}">Dashboard</a></div></div>
+<div class="container"><div class="card"><h1>Notifications</h1>
+<div th:each="n : ${notifications}" class="card">
+<div class="actions"><span class="badge" th:text="${n.notificationType}"></span><span class="muted" th:text="${#temporals.format(n.createdDate,'yyyy-MM-dd HH:mm')}"></span></div>
+<p th:text="${n.message}"></p>
+<form th:if="${!n.readStatus}" th:action="@{/notifications/{id}/read(id=${n.notificationId})}" method="post"><button class="btn secondary" type="submit">Mark as Read</button></form>
+<span th:if="${n.readStatus}" class="muted">Read</span>
+</div>
+<p th:if="${#lists.isEmpty(notifications)}" class="muted">No notifications.</p>
+</div></div></body></html>
