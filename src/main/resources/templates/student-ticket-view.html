@@ -13,5 +13,29 @@
 <div class="card"><h2>Conversation</h2><div th:each="item : ${comments}"><strong th:text="${item.user.firstName + ' ' + item.user.lastName}"></strong><span class="muted" th:text="${' · ' + #temporals.format(item.createdDate,'yyyy-MM-dd HH:mm')}"></span><p th:text="${item.commentText}"></p></div>
 <form th:action="@{/student/tickets/{id}/comments(id=${ticket.ticketId})}" method="post"><label>Add reply<textarea name="comment" rows="4" required></textarea></label><button class="btn" type="submit">Post Reply</button></form>
 </div>
+
+<div class="card">
+<h2>Feedback</h2>
+<div th:if="${feedback != null}">
+<p><strong>Rating:</strong> <span th:text="${feedback.rating + ' / 5'}"></span></p>
+<p th:if="${feedback.comment != null}" th:text="${feedback.comment}"></p>
+<p class="muted" th:text="${#temporals.format(feedback.submittedDate,'yyyy-MM-dd HH:mm')}"></p>
+</div>
+<form th:if="${canSubmitFeedback}" th:action="@{/student/tickets/{id}/feedback(id=${ticket.ticketId})}" method="post">
+<label>Rating
+<select name="rating" required>
+<option value="5">5 - Excellent</option>
+<option value="4">4 - Good</option>
+<option value="3">3 - Average</option>
+<option value="2">2 - Poor</option>
+<option value="1">1 - Very Poor</option>
+</select>
+</label>
+<label>Comment<textarea name="feedbackComment" rows="3" maxlength="1000"></textarea></label>
+<button class="btn" type="submit">Submit Feedback</button>
+</form>
+<p th:if="${feedback == null and !canSubmitFeedback}" class="muted">Feedback becomes available after the ticket is resolved or closed.</p>
+</div>
+
 </div>
 </body></html>
