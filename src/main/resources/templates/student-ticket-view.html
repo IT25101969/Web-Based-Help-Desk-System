@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ticket</title><link rel="stylesheet" th:href="@{/css/app.css}"></head>
+<body>
+<div class="topbar"><strong th:text="${ticket.referenceNo}">Ticket</strong><div><a th:href="@{/student/tickets}">My Tickets</a><a th:href="@{/notifications}">Notifications</a></div></div>
+<div class="container">
+<div th:if="${success}" class="alert success" th:text="${success}"></div><div th:if="${error}" class="alert error" th:text="${error}"></div>
+<div class="card"><h1 th:text="${ticket.subject}"></h1><p class="muted" th:text="${ticket.category.categoryName}"></p><p th:text="${ticket.description}"></p><div class="actions"><span class="badge" th:text="${ticket.status}"></span><span class="badge" th:text="${ticket.priority}"></span></div></div>
+<div class="grid grid-2">
+<div class="card"><h2>Status History</h2><div th:each="item : ${history}"><strong th:text="${item.newStatus}"></strong> <span class="muted" th:text="${#temporals.format(item.changedDate,'yyyy-MM-dd HH:mm')}"></span><p th:text="${item.reason}"></p></div></div>
+<div class="card"><h2>Attachments</h2><div th:each="item : ${attachments}"><a th:href="@{/student/tickets/{tid}/attachments/{aid}(tid=${ticket.ticketId},aid=${item.attachmentId})}" th:text="${item.fileName}"></a></div><p th:if="${#lists.isEmpty(attachments)}" class="muted">No attachments.</p></div>
+</div>
+<div class="card"><h2>Conversation</h2><div th:each="item : ${comments}"><strong th:text="${item.user.firstName + ' ' + item.user.lastName}"></strong><span class="muted" th:text="${' · ' + #temporals.format(item.createdDate,'yyyy-MM-dd HH:mm')}"></span><p th:text="${item.commentText}"></p></div>
+<form th:action="@{/student/tickets/{id}/comments(id=${ticket.ticketId})}" method="post"><label>Add reply<textarea name="comment" rows="4" required></textarea></label><button class="btn" type="submit">Post Reply</button></form>
+</div>
+</div>
+</body></html>
