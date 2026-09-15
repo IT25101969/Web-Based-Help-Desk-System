@@ -33,6 +33,7 @@ public class SecurityConfig {
                                 "/login",
                                 "/forgot-password",
                                 "/reset-password",
+                                "/access-denied",
                                 "/css/**",
                                 "/js/**",
                                 "/images/**"
@@ -79,6 +80,10 @@ public class SecurityConfig {
                         .failureHandler(failureHandler)
 
                         .permitAll()
+                )
+
+                .exceptionHandling(exception ->
+                        exception.accessDeniedPage("/access-denied")
                 )
 
                 .logout(logout -> logout
