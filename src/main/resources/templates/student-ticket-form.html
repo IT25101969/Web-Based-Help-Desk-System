@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Submit Ticket</title><link rel="stylesheet" th:href="@{/css/app.css}"></head>
+<body>
+<div class="topbar"><strong>University Help Desk</strong><div><a th:href="@{/student/tickets}">My Tickets</a><a th:href="@{/faq}">FAQ</a></div></div>
+<div class="container"><div class="card">
+<h1>Submit Incident / Service Request</h1>
+<div th:if="${error}" class="alert error" th:text="${error}"></div>
+<form th:action="@{/student/tickets}" method="post" enctype="multipart/form-data">
+<label>Category
+<select name="categoryId" required>
+<option value="">Select a category</option>
+<option th:each="category : ${categories}" th:value="${category.categoryId}" th:text="${category.categoryName}" th:selected="${selectedCategoryId != null and selectedCategoryId == category.categoryId}"></option>
+</select></label>
+<label>Type
+<select name="ticketType" required>
+<option th:each="type : ${ticketTypes}" th:value="${type}" th:text="${#strings.replace(type.name(),'_',' ')}"></option>
+</select></label>
+<label>Subject<input name="subject" maxlength="200" required></label>
+<label>Description<textarea name="description" rows="7" required></textarea></label>
+<label>Incident type / requested service<input name="subtypeDetail" maxlength="150"></label>
+<label>Severity (for incidents)<select name="severity"><option value="">Not specified</option><option>Low</option><option>Medium</option><option>High</option><option>Critical</option></select></label>
+<label>Attachment (PDF, PNG, JPEG, TXT; max 5 MB)<input type="file" name="attachment" accept=".pdf,.png,.jpg,.jpeg,.txt"></label>
+<button class="btn" type="submit">Submit Ticket</button>
+</form>
+</div></div>
+</body></html>
