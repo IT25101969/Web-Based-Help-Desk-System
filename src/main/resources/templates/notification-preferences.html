@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Notification Preferences - University Help Desk</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <style>
+        .pref-card {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            padding: 16px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            background: #ffffff;
+        }
+        .pref-card:hover {
+            border-color: #cbd5e1;
+            box-shadow: 0 2px 8px rgba(15,23,42,0.04);
+        }
+        .pref-checkbox {
+            width: 22px;
+            height: 22px;
+            margin-top: 3px;
+            cursor: pointer;
+            accent-color: #2563eb;
+        }
+        .pref-info h3 {
+            margin: 0 0 4px 0;
+            font-size: 16px;
+            color: #0f172a;
+        }
+        .pref-info p {
+            margin: 0;
+            font-size: 14px;
+            color: #64748b;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+
+<div class="topbar">
+    <div>
+        <strong>University Help Desk</strong> &nbsp;|&nbsp; <span>Notification Preferences</span>
+    </div>
+    <div>
+        <a th:href="@{/notifications}">Notifications (<span th:text="${unreadCount}">0</span>)</a>
+        <a th:href="@{/dashboard}">Dashboard</a>
+        <form th:action="@{/logout}" method="post" style="display:inline; margin-left:14px;">
+            <button type="submit" class="btn secondary" style="padding:4px 10px; font-size:13px;">Logout</button>
+        </form>
+    </div>
+</div>
+
+<div class="container" style="max-width:750px;">
+
+    <div th:if="${successMessage}" class="alert success" th:text="${successMessage}"></div>
+    <div th:if="${errorMessage}" class="alert error" th:text="${errorMessage}"></div>
+
+    <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <div>
+                <h1 style="margin:0 0 6px 0;">Notification Preferences</h1>
+                <p class="muted" style="margin:0;">
+                    Manage how and where you receive notifications and ticket updates.
+                </p>
+            </div>
+            <a th:href="@{/notifications}" class="btn secondary" style="font-size:13px;">&larr; Back to Notifications</a>
+        </div>
+
+        <form th:action="@{/notifications/preferences}" method="post" style="margin-top:20px;">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+
+            <!-- In-App Notifications Option -->
+            <label class="pref-card" style="cursor:pointer;">
+                <input type="checkbox"
+                       name="inAppEnabled"
+                       value="true"
+                       class="pref-checkbox"
+                       th:checked="${preference.inAppEnabled}" />
+                <div class="pref-info">
+                    <h3>In-App Portal Notifications</h3>
+                    <p>
+                        Display alerts directly in your portal Notification Center when your tickets are created, assigned, updated, or resolved.
+                    </p>
+                    <p style="font-size:12px; color:#94a3b8; margin-top:4px;">
+                        <em>Note: Mandatory security and administrative system alerts will always be delivered to your portal account.</em>
+                    </p>
+                </div>
+            </label>
+
+            <!-- Email Notifications Option -->
+            <label class="pref-card" style="cursor:pointer;">
+                <input type="checkbox"
+                       name="emailEnabled"
+                       value="true"
+                       class="pref-checkbox"
+                       th:checked="${preference.emailEnabled}" />
+                <div class="pref-info">
+                    <h3>Email Notifications</h3>
+                    <p>
+                        Receive automated email updates at <strong th:text="${user.email}">user@university.edu</strong> whenever action is taken on your help desk tickets.
+                    </p>
+                </div>
+            </label>
+
+            <div style="margin-top:24px; display:flex; gap:12px; align-items:center;">
+                <button type="submit" class="btn" style="padding:10px 24px;">Save Preferences</button>
+                <a th:href="@{/notifications}" class="btn secondary" style="padding:10px 18px;">Cancel</a>
+            </div>
+        </form>
+    </div>
+
+</div>
+
+</body>
+</html>

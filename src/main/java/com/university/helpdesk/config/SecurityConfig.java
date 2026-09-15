@@ -185,7 +185,10 @@ public class SecurityConfig {
                         .requestMatchers("/management/**")
                         .hasRole("University Management")
 
-                        // Shared authenticated pages such as FAQ and notifications
+                        .requestMatchers("/notifications", "/notifications/**")
+                        .authenticated()
+
+                        // Shared authenticated pages such as FAQ and dashboards
                         .anyRequest()
                         .authenticated()
                 )

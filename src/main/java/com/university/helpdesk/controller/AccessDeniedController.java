@@ -6,8 +6,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class AccessDeniedController {
 
-    @GetMapping("/access-denied")
-    public String accessDenied() {
+    @org.springframework.web.bind.annotation.RequestMapping("/access-denied")
+    public String accessDenied(jakarta.servlet.http.HttpServletResponse response) {
+        response.setStatus(jakarta.servlet.http.HttpServletResponse.SC_FORBIDDEN);
         return "access-denied";
     }
 }

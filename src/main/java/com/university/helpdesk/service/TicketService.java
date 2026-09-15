@@ -245,6 +245,35 @@ public class TicketService {
                         newStatus.name().replace('_', ' ').toLowerCase(Locale.ROOT) + "."
         );
 
+        if (newStatus == TicketStatus.ESCALATED) {
+            Department department = ticket.getCategory() != null ? ticket.getCategory().getDepartment() : null;
+            if (department != null) {
+                List<UserDepartment> memberships = userDepartmentRepository
+                        .findByDepartmentDepartmentIdAndActiveTrue(department.getDepartmentId());
+                for (UserDepartment member : memberships) {
+                    if (!member.getUser().getUserId().equals(actor.getUserId())) {
+                        notificationService.notifyUser(
+                                member.getUser(),
+                                ticket,
+                                NotificationType.ESCALATED,
+                                "Ticket " + ticket.getReferenceNo() + " has been escalated in " + department.getDepartmentName() + "."
+                        );
+                    }
+                }
+            } else {
+                for (UserRole adminRole : userRoleRepository.findByRoleRoleNameAndActiveTrue("System Administrator")) {
+                    if (!adminRole.getUser().getUserId().equals(actor.getUserId())) {
+                        notificationService.notifyUser(
+                                adminRole.getUser(),
+                                ticket,
+                                NotificationType.ESCALATED,
+                                "Ticket " + ticket.getReferenceNo() + " has been escalated and requires attention."
+                        );
+                    }
+                }
+            }
+        }
+
         return ticket;
     }
 
