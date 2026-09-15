@@ -25,7 +25,17 @@ public class AttachmentService {
             "application/pdf",
             "image/png",
             "image/jpeg",
+            "image/jpg",
+            "image/pjpeg",
             "text/plain"
+    );
+
+    private static final Set<String> ALLOWED_EXTENSIONS = Set.of(
+            ".pdf",
+            ".png",
+            ".jpg",
+            ".jpeg",
+            ".txt"
     );
 
     private final AttachmentRepository attachmentRepository;
@@ -49,22 +59,26 @@ public class AttachmentService {
             throw new IllegalArgumentException("Attachment must be 5 MB or smaller.");
         }
 
-        String contentType = file.getContentType();
-        if (contentType == null || !ALLOWED_TYPES.contains(contentType)) {
-            throw new IllegalArgumentException("Only PDF, PNG, JPEG and TXT attachments are allowed.");
-        }
-
-        Files.createDirectories(uploadRoot);
-
         String originalName = file.getOriginalFilename() == null
                 ? "attachment"
-                : Paths.get(file.getOriginalFilename()).getFileName().toString();
+                : Paths.get(file.getOriginalFilename()).getFileName().toString().trim();
 
         String extension = "";
         int dot = originalName.lastIndexOf('.');
         if (dot >= 0 && dot < originalName.length() - 1) {
-            extension = originalName.substring(dot);
+            extension = originalName.substring(dot).toLowerCase(java.util.Locale.ROOT);
         }
+
+        if (!ALLOWED_EXTENSIONS.contains(extension)) {
+            throw new IllegalArgumentException("Only PDF, PNG, JPG/JPEG, and TXT attachments are allowed.");
+        }
+
+        String contentType = file.getContentType();
+        if (contentType == null || !ALLOWED_TYPES.contains(contentType.toLowerCase(java.util.Locale.ROOT))) {
+            throw new IllegalArgumentException("Only PDF, PNG, JPG/JPEG, and TXT attachments are allowed.");
+        }
+
+        Files.createDirectories(uploadRoot);
 
         String storedName = UUID.randomUUID() + extension;
         Path target = uploadRoot.resolve(storedName).normalize();

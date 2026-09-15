@@ -1,27 +1,225 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Submit Ticket</title><link rel="stylesheet" th:href="@{/css/app.css}"></head>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submit Ticket - University Help Desk</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
 <body>
-<div class="topbar"><strong>University Help Desk</strong><div><a th:href="@{/student/tickets}">My Tickets</a><a th:href="@{/faq}">FAQ</a></div></div>
-<div class="container"><div class="card">
-<h1>Submit Incident / Service Request</h1>
-<div th:if="${error}" class="alert error" th:text="${error}"></div>
-<form th:action="@{/student/tickets}" method="post" enctype="multipart/form-data">
-<label>Category
-<select name="categoryId" required>
-<option value="">Select a category</option>
-<option th:each="category : ${categories}" th:value="${category.categoryId}" th:text="${category.categoryName}" th:selected="${selectedCategoryId != null and selectedCategoryId == category.categoryId}"></option>
-</select></label>
-<label>Type
-<select name="ticketType" required>
-<option th:each="type : ${ticketTypes}" th:value="${type}" th:text="${#strings.replace(type.name(),'_',' ')}"></option>
-</select></label>
-<label>Subject<input name="subject" maxlength="200" required></label>
-<label>Description<textarea name="description" rows="7" required></textarea></label>
-<label>Incident type / requested service<input name="subtypeDetail" maxlength="150"></label>
-<label>Severity (for incidents)<select name="severity"><option value="">Not specified</option><option>Low</option><option>Medium</option><option>High</option><option>Critical</option></select></label>
-<label>Attachment (PDF, PNG, JPEG, TXT; max 5 MB)<input type="file" name="attachment" accept=".pdf,.png,.jpg,.jpeg,.txt"></label>
-<button class="btn" type="submit">Submit Ticket</button>
-</form>
-</div></div>
-</body></html>
+
+<header class="topbar">
+    <a th:href="@{/student/dashboard}" class="topbar-brand">
+        <strong>University</strong> <span>Help Desk</span>
+    </a>
+    <nav class="topbar-nav">
+        <a th:href="@{/student/dashboard}">Dashboard</a>
+        <a th:href="@{/student/tickets}">My Tickets</a>
+        <a th:href="@{/student/tickets/new}" class="active">Submit Ticket</a>
+        <a th:href="@{/faq}">FAQ</a>
+        <a th:href="@{/notifications}">Notifications</a>
+    </nav>
+    <div class="topbar-user">
+        <form th:action="@{/logout}" method="post" style="display:inline; margin:0;">
+            <button type="submit" class="btn-logout">Logout</button>
+        </form>
+    </div>
+</header>
+
+<main class="container">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Submit a Ticket</h1>
+            <p class="page-subtitle">Report a campus incident or request university IT/administrative services.</p>
+        </div>
+        <div>
+            <a th:href="@{/student/tickets}" class="btn secondary">Back to My Tickets</a>
+        </div>
+    </div>
+
+    <!-- Alert Messages -->
+    <div th:if="${error}" class="alert error" id="alert-error">
+        <span>⚠️</span>
+        <span th:text="${error}">An error occurred.</span>
+    </div>
+
+    <div class="card">
+        <form th:action="@{/student/tickets}" th:object="${form}" method="post" enctype="multipart/form-data" id="ticket-form">
+
+            <!-- Category Field -->
+            <div class="form-group">
+                <label for="categoryId">
+                    Category <span class="required">*</span>
+                </label>
+                <select id="categoryId" th:field="*{categoryId}" th:classappend="${#fields.hasErrors('categoryId')} ? 'is-invalid' : ''" required>
+                    <option value="">-- Select an Active Category --</option>
+                    <option th:each="cat : ${categories}"
+                            th:value="${cat.categoryId}"
+                            th:text="${cat.categoryName + (cat.department != null ? ' (' + cat.department.departmentName + ')' : ' (General Inquiry / Triage)')}">
+                        Password Reset (IT Support)
+                    </option>
+                </select>
+                <div th:if="${#fields.hasErrors('categoryId')}" class="field-error" th:errors="*{categoryId}"></div>
+                <div class="form-hint">Choose the functional area that matches your request. Categories automatically route to the corresponding department.</div>
+            </div>
+
+            <!-- Ticket Type Field -->
+            <div class="form-group">
+                <label for="ticketType">
+                    Ticket Type <span class="required">*</span>
+                </label>
+                <select id="ticketType" th:field="*{ticketType}" th:classappend="${#fields.hasErrors('ticketType')} ? 'is-invalid' : ''" onchange="onTypeChange()" required>
+                    <option th:each="type : ${ticketTypes}"
+                            th:value="${type}"
+                            th:text="${type.name() == 'INCIDENT' ? 'Incident (Something is broken / not working)' : 'Service Request (Requesting new access, hardware, or service)'}">
+                        Incident
+                    </option>
+                </select>
+                <div th:if="${#fields.hasErrors('ticketType')}" class="field-error" th:errors="*{ticketType}"></div>
+            </div>
+
+            <!-- Incident-specific details -->
+            <div id="incident-fields" class="form-group" style="padding: 16px; background: #f8fafc; border-radius: var(--radius-md); border: 1px solid var(--border);">
+                <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 12px; color: #4338ca;">Incident Details</div>
+                <div class="grid grid-2">
+                    <div>
+                        <label for="subtypeDetail-incident">Incident Type / Specific Issue</label>
+                        <input type="text" id="subtypeDetail-incident" name="subtypeDetail"
+                               th:value="*{subtypeDetail}" maxlength="150"
+                               placeholder="e.g. Wi-Fi authentication failure, Portal crash">
+                        <div class="form-hint">Brief classification of the failure or outage.</div>
+                    </div>
+                    <div>
+                        <label for="severity">Severity Level</label>
+                        <select id="severity" th:field="*{severity}">
+                            <option value="">-- Default (Standard) --</option>
+                            <option value="Low">Low (Minor inconvenience, workaround exists)</option>
+                            <option value="Medium">Medium (Impacting normal study/work)</option>
+                            <option value="High">High (Major functionality blocked)</option>
+                            <option value="Critical">Critical (Complete outage / urgent exam blocker)</option>
+                        </select>
+                        <div class="form-hint">How severely does this affect your academic work?</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Service Request-specific details -->
+            <div id="service-request-fields" class="form-group" style="display:none; padding: 16px; background: #f8fafc; border-radius: var(--radius-md); border: 1px solid var(--border);">
+                <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 12px; color: #0284c7;">Service Request Details</div>
+                <label for="subtypeDetail-service">Requested Service Description</label>
+                <input type="text" id="subtypeDetail-service" maxlength="150"
+                       placeholder="e.g. SPSS statistical software license, transcript verification">
+                <div class="form-hint">Specify the software, hardware, credential or service you are requesting.</div>
+            </div>
+
+            <!-- Subject Field -->
+            <div class="form-group">
+                <label for="subject">
+                    Subject / Title <span class="required">*</span>
+                </label>
+                <input type="text" id="subject" th:field="*{subject}" maxlength="200"
+                       th:classappend="${#fields.hasErrors('subject')} ? 'is-invalid' : ''"
+                       placeholder="Brief summary of your inquiry or problem" required>
+                <div th:if="${#fields.hasErrors('subject')}" class="field-error" th:errors="*{subject}"></div>
+            </div>
+
+            <!-- Description Field -->
+            <div class="form-group">
+                <label for="description">
+                    Detailed Description <span class="required">*</span>
+                </label>
+                <textarea id="description" th:field="*{description}" rows="6"
+                          th:classappend="${#fields.hasErrors('description')} ? 'is-invalid' : ''"
+                          placeholder="Please describe the issue or request in detail. Include any steps to reproduce the error or specific requirements." required></textarea>
+                <div th:if="${#fields.hasErrors('description')}" class="field-error" th:errors="*{description}"></div>
+            </div>
+
+            <!-- Attachment Field -->
+            <div class="form-group">
+                <label for="attachment">
+                    Attachment (Optional)
+                </label>
+                <div class="file-upload-box" onclick="document.getElementById('attachment').click();">
+                    <div style="font-size: 1.8rem; margin-bottom: 6px;">📎</div>
+                    <div style="font-weight: 600; color: #334155;" id="file-chosen-text">Choose a file or click here to browse</div>
+                    <div class="form-hint" style="margin-top: 6px;">Allowed types: <strong>PDF, PNG, JPG/JPEG, TXT</strong> · Maximum size: <strong>5 MB</strong></div>
+                </div>
+                <input type="file" id="attachment" name="attachment" style="display:none;"
+                       accept=".pdf,.png,.jpg,.jpeg,.txt" onchange="validateAndDisplayFile(this)">
+                <div id="file-error" class="field-error" style="display:none; margin-top:8px;"></div>
+            </div>
+
+            <div style="display: flex; gap: 14px; align-items: center; margin-top: 28px;">
+                <button type="submit" class="btn" id="btn-submit">
+                    Submit Ticket
+                </button>
+                <a th:href="@{/student/tickets}" class="btn secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</main>
+
+<script>
+    function onTypeChange() {
+        const typeSelect = document.getElementById('ticketType');
+        const incidentBox = document.getElementById('incident-fields');
+        const serviceBox = document.getElementById('service-request-fields');
+        const incidentInput = document.getElementById('subtypeDetail-incident');
+        const serviceInput = document.getElementById('subtypeDetail-service');
+
+        if (typeSelect.value === 'SERVICE_REQUEST') {
+            incidentBox.style.display = 'none';
+            serviceBox.style.display = 'block';
+            incidentInput.removeAttribute('name');
+            serviceInput.setAttribute('name', 'subtypeDetail');
+        } else {
+            incidentBox.style.display = 'block';
+            serviceBox.style.display = 'none';
+            serviceInput.removeAttribute('name');
+            incidentInput.setAttribute('name', 'subtypeDetail');
+        }
+    }
+
+    function validateAndDisplayFile(input) {
+        const file = input.files[0];
+        const errorDiv = document.getElementById('file-error');
+        const chosenText = document.getElementById('file-chosen-text');
+
+        errorDiv.style.display = 'none';
+        errorDiv.textContent = '';
+
+        if (!file) {
+            chosenText.textContent = 'Choose a file or click here to browse';
+            return;
+        }
+
+        const maxSizeBytes = 5 * 1024 * 1024;
+        const allowedExtensions = ['.pdf', '.png', '.jpg', '.jpeg', '.txt'];
+        const fileName = file.name.toLowerCase();
+
+        const hasValidExt = allowedExtensions.some(ext => fileName.endsWith(ext));
+        if (!hasValidExt) {
+            errorDiv.textContent = 'Only PDF, PNG, JPG/JPEG, and TXT attachments are allowed.';
+            errorDiv.style.display = 'block';
+            input.value = '';
+            chosenText.textContent = 'Choose a file or click here to browse';
+            return;
+        }
+
+        if (file.size > maxSizeBytes) {
+            errorDiv.textContent = 'Attachment must be 5 MB or smaller (Selected: ' + (file.size / (1024 * 1024)).toFixed(2) + ' MB).';
+            errorDiv.style.display = 'block';
+            input.value = '';
+            chosenText.textContent = 'Choose a file or click here to browse';
+            return;
+        }
+
+        const sizeFormatted = (file.size / 1024).toFixed(1) + ' KB';
+        chosenText.innerHTML = '<strong>' + file.name + '</strong> (' + sizeFormatted + ')';
+    }
+
+    document.addEventListener('DOMContentLoaded', onTypeChange);
+</script>
+
+</body>
+</html>

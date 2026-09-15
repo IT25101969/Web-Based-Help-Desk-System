@@ -61,6 +61,22 @@ public class TicketService {
             String subtypeDetail,
             String severity
     ) {
+        if (categoryId == null) {
+            throw new IllegalArgumentException("Please select a category.");
+        }
+        if (ticketType == null) {
+            throw new IllegalArgumentException("Please select a ticket type.");
+        }
+        if (subject == null || subject.trim().isBlank()) {
+            throw new IllegalArgumentException("Subject is required.");
+        }
+        if (subject.trim().length() > 200) {
+            throw new IllegalArgumentException("Subject cannot exceed 200 characters.");
+        }
+        if (description == null || description.trim().isBlank()) {
+            throw new IllegalArgumentException("Description is required.");
+        }
+
         UserAccount user = userAccountRepository.findByUniversityId(universityId)
                 .orElseThrow(() -> new IllegalArgumentException("Authenticated user was not found."));
 
@@ -129,10 +145,20 @@ public class TicketService {
                 .orElseThrow(() -> new IllegalArgumentException("Ticket was not found."));
 
         if (!ticket.getStudent().getUser().getUniversityId().equals(universityId)) {
-            throw new SecurityException("You cannot access this ticket.");
+            throw new org.springframework.security.access.AccessDeniedException("You cannot access this ticket.");
         }
 
         return ticket;
+    }
+
+    @Transactional(readOnly = true)
+    public Incident getIncident(Long ticketId) {
+        return incidentRepository.findById(ticketId).orElse(null);
+    }
+
+    @Transactional(readOnly = true)
+    public ServiceRequest getServiceRequest(Long ticketId) {
+        return serviceRequestRepository.findById(ticketId).orElse(null);
     }
 
     @Transactional(readOnly = true)
@@ -256,13 +282,17 @@ public class TicketService {
     }
 
     private String generateReference() {
-        String date = LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE);
-        String random = UUID.randomUUID()
-                .toString()
-                .replace("-", "")
-                .substring(0, 8)
-                .toUpperCase(Locale.ROOT);
-        return "HD-" + date + "-" + random;
+        String reference;
+        do {
+            String date = LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE);
+            String random = UUID.randomUUID()
+                    .toString()
+                    .replace("-", "")
+                    .substring(0, 8)
+                    .toUpperCase(Locale.ROOT);
+            reference = "HD-" + date + "-" + random;
+        } while (ticketRepository.existsByReferenceNo(reference));
+        return reference;
     }
 
     private String blankToNull(String value) {

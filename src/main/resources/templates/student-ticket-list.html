@@ -1,26 +1,101 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>My Tickets</title><link rel="stylesheet" th:href="@{/css/app.css}"></head>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Tickets - University Help Desk</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
 <body>
-<div class="topbar"><strong>University Help Desk</strong><div><a th:href="@{/student/dashboard}">Dashboard</a><a th:href="@{/faq}">FAQ</a><a th:href="@{/notifications}">Notifications</a></div></div>
-<div class="container">
-<div class="actions"><a class="btn" th:href="@{/student/tickets/new}">Submit New Ticket</a></div>
-<div class="card">
-<h1>My Tickets</h1>
-<table>
-<thead><tr><th>Reference</th><th>Subject</th><th>Category</th><th>Priority</th><th>Status</th><th>Created</th></tr></thead>
-<tbody>
-<tr th:each="ticket : ${tickets}">
-<td><a th:href="@{/student/tickets/{id}(id=${ticket.ticketId})}" th:text="${ticket.referenceNo}"></a></td>
-<td th:text="${ticket.subject}"></td>
-<td th:text="${ticket.category.categoryName}"></td>
-<td th:text="${ticket.priority}"></td>
-<td><span class="badge" th:text="${ticket.status}"></span></td>
-<td th:text="${#temporals.format(ticket.createdDate,'yyyy-MM-dd HH:mm')}"></td>
-</tr>
-<tr th:if="${#lists.isEmpty(tickets)}"><td colspan="6" class="muted">No tickets yet.</td></tr>
-</tbody>
-</table>
-</div>
-</div>
-</body></html>
+
+<header class="topbar">
+    <a th:href="@{/student/dashboard}" class="topbar-brand">
+        <strong>University</strong> <span>Help Desk</span>
+    </a>
+    <nav class="topbar-nav">
+        <a th:href="@{/student/dashboard}">Dashboard</a>
+        <a th:href="@{/student/tickets}" class="active">My Tickets</a>
+        <a th:href="@{/student/tickets/new}">Submit Ticket</a>
+        <a th:href="@{/faq}">FAQ</a>
+        <a th:href="@{/notifications}">Notifications</a>
+    </nav>
+    <div class="topbar-user">
+        <form th:action="@{/logout}" method="post" style="display:inline; margin:0;">
+            <button type="submit" class="btn-logout">Logout</button>
+        </form>
+    </div>
+</header>
+
+<main class="container">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">My Tickets</h1>
+            <p class="page-subtitle">Track the progress and status of your reported incidents and service requests.</p>
+        </div>
+        <div>
+            <a th:href="@{/student/tickets/new}" class="btn" id="btn-submit-ticket">
+                + Submit New Ticket
+            </a>
+        </div>
+    </div>
+
+    <!-- Ticket Listing Card -->
+    <div class="card">
+        <div th:if="${!#lists.isEmpty(tickets)}" class="table-responsive">
+            <table>
+                <thead>
+                <tr>
+                    <th>Reference</th>
+                    <th>Type</th>
+                    <th>Subject</th>
+                    <th>Category</th>
+                    <th>Priority</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th>Action</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="ticket : ${tickets}">
+                    <td>
+                        <a th:href="@{/student/tickets/{id}(id=${ticket.ticketId})}"
+                           th:text="${ticket.referenceNo}"
+                           style="font-family: monospace; font-weight: 700;">HD-20260915-ABCD</a>
+                    </td>
+                    <td>
+                        <span class="badge badge-type" th:text="${ticket.ticketType}">INCIDENT</span>
+                    </td>
+                    <td>
+                        <a th:href="@{/student/tickets/{id}(id=${ticket.ticketId})}"
+                           th:text="${ticket.subject}"
+                           style="font-weight: 600; color: var(--text-main);">Issue Subject</a>
+                    </td>
+                    <td th:text="${ticket.category != null ? ticket.category.categoryName : 'N/A'}">IT Support</td>
+                    <td>
+                        <span th:class="'badge badge-priority-' + ${#strings.toLowerCase(ticket.priority)}"
+                              th:text="${ticket.priority}">MEDIUM</span>
+                    </td>
+                    <td>
+                        <span th:class="'badge badge-status-' + ${#strings.replace(#strings.toLowerCase(ticket.status),'_','-')}"
+                              th:text="${ticket.status}">NEW</span>
+                    </td>
+                    <td th:text="${#temporals.format(ticket.createdDate, 'yyyy-MM-dd HH:mm')}" class="text-muted">2026-09-15 10:30</td>
+                    <td>
+                        <a th:href="@{/student/tickets/{id}(id=${ticket.ticketId})}" class="btn btn-sm secondary">View Details</a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div th:if="${#lists.isEmpty(tickets)}" class="empty-state">
+            <div class="empty-state-icon">📋</div>
+            <div class="empty-state-title">No tickets found</div>
+            <p>You haven't submitted any tickets yet. If you are experiencing an issue or need assistance, submit a ticket below.</p>
+            <a th:href="@{/student/tickets/new}" class="btn">+ Submit a Ticket Now</a>
+        </div>
+    </div>
+</main>
+
+</body>
+</html>
