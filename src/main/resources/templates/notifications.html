@@ -79,18 +79,53 @@
 </head>
 <body>
 
-<div class="topbar">
-    <div>
-        <strong>University Help Desk</strong> &nbsp;|&nbsp; <span>Notification Center</span>
-    </div>
-    <div>
+<header class="topbar">
+    <a th:href="@{/dashboard}" class="topbar-brand">
+        <strong>University</strong> <span>Help Desk</span>
+    </a>
+    <nav class="topbar-nav" sec:authorize="hasRole('Student')">
+        <a th:href="@{/student/dashboard}">Dashboard</a>
+        <a th:href="@{/student/tickets}">My Tickets</a>
+        <a th:href="@{/student/tickets/new}">Submit Ticket</a>
+        <a th:href="@{/faq}">FAQ</a>
+        <a th:href="@{/notifications}" class="active">Notifications</a>
         <a th:href="@{/notifications/preferences}">Preferences</a>
-        <a th:href="@{/dashboard}">Dashboard</a>
-        <form th:action="@{/logout}" method="post" style="display:inline; margin-left:14px;">
-            <button type="submit" class="btn secondary" style="padding:4px 10px; font-size:13px;">Logout</button>
+    </nav>
+    <nav class="topbar-nav" sec:authorize="hasAnyRole('Help Desk Support Staff', 'Department Support Team Member')">
+        <a th:href="@{/staff/dashboard}">Dashboard</a>
+        <a th:href="@{/staff/tickets}">Ticket Queue</a>
+        <a th:href="@{/faq}">FAQ</a>
+        <a th:href="@{/notifications}" class="active">Notifications</a>
+        <a th:href="@{/notifications/preferences}">Preferences</a>
+    </nav>
+    <nav class="topbar-nav" sec:authorize="hasRole('Department Manager')">
+        <a th:href="@{/manager/dashboard}">Dashboard</a>
+        <a th:href="@{/manager/tickets}">Ticket Queue</a>
+        <a th:href="@{/faq}">FAQ</a>
+        <a th:href="@{/notifications}" class="active">Notifications</a>
+        <a th:href="@{/notifications/preferences}">Preferences</a>
+    </nav>
+    <nav class="topbar-nav" sec:authorize="hasRole('System Administrator')">
+        <a th:href="@{/admin/dashboard}">Dashboard</a>
+        <a th:href="@{/admin/tickets}">Tickets</a>
+        <a th:href="@{/admin/faqs}">FAQ Admin</a>
+        <a th:href="@{/admin/reports}">Reports</a>
+        <a th:href="@{/admin/users}">Users</a>
+        <a th:href="@{/notifications}" class="active">Notifications</a>
+        <a th:href="@{/notifications/preferences}">Preferences</a>
+    </nav>
+    <nav class="topbar-nav" sec:authorize="hasRole('University Management')">
+        <a th:href="@{/management/dashboard}">Dashboard</a>
+        <a th:href="@{/management/reports}">Reports</a>
+        <a th:href="@{/notifications}" class="active">Notifications</a>
+        <a th:href="@{/notifications/preferences}">Preferences</a>
+    </nav>
+    <div class="topbar-user">
+        <form th:action="@{/logout}" method="post" style="display:inline; margin:0;">
+            <button type="submit" class="btn-logout">Logout</button>
         </form>
     </div>
-</div>
+</header>
 
 <div class="container">
 

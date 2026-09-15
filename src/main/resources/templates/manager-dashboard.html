@@ -2,19 +2,59 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Department Manager Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Department Manager Dashboard - University Help Desk</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
 <body>
 
-<h1>Department Manager Dashboard</h1>
+<header class="topbar">
+    <a th:href="@{/manager/dashboard}" class="topbar-brand">
+        <strong>University</strong> <span>Help Desk</span>
+    </a>
+    <nav class="topbar-nav">
+        <a th:href="@{/manager/dashboard}" class="active">Dashboard</a>
+        <a th:href="@{/manager/tickets}">Ticket Queue</a>
+        <a th:href="@{/faq}">FAQ</a>
+        <a th:href="@{/notifications}">Notifications</a>
+    </nav>
+    <div class="topbar-user">
+        <span class="user-badge">Manager</span>
+        <form th:action="@{/logout}" method="post" style="display:inline; margin:0;">
+            <button type="submit" class="btn-logout">Logout</button>
+        </form>
+    </div>
+</header>
 
-<p>Welcome to the Department Manager Portal.</p>
+<main class="container">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Department Manager Dashboard</h1>
+            <p class="page-subtitle">Oversee departmental ticket handling, workloads, staff assignments, and escalations.</p>
+        </div>
+        <div>
+            <a th:href="@{/manager/tickets}" class="btn">View Department Queue</a>
+        </div>
+    </div>
 
-<p><a th:href="@{/notifications}">View Notifications</a></p>
-
-<form th:action="@{/logout}" method="post">
-    <button type="submit">Logout</button>
-</form>
+    <div class="grid grid-3" style="margin-bottom: 28px;">
+        <div class="card">
+            <h2 class="card-title">Ticket Handling &amp; Queue</h2>
+            <p class="muted">Review tickets routed to your department, reassign staff, and track progress.</p>
+            <a th:href="@{/manager/tickets}" class="btn btn-sm">Open Queue &rarr;</a>
+        </div>
+        <div class="card">
+            <h2 class="card-title">Notification Center</h2>
+            <p class="muted">Check status alerts, assignment updates, and priority notifications.</p>
+            <a th:href="@{/notifications}" class="btn btn-sm secondary">View Notifications &rarr;</a>
+        </div>
+        <div class="card">
+            <h2 class="card-title">Help &amp; Knowledge Base</h2>
+            <p class="muted">Access published university guides, student FAQ articles, and service documentation.</p>
+            <a th:href="@{/faq}" class="btn btn-sm secondary">Browse FAQs &rarr;</a>
+        </div>
+    </div>
+</main>
 
 </body>
 </html>

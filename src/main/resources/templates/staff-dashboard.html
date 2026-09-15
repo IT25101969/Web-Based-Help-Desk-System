@@ -2,19 +2,59 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Support Staff Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Support Staff Dashboard - University Help Desk</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
 <body>
 
-<h1>Support Staff Dashboard</h1>
+<header class="topbar">
+    <a th:href="@{/staff/dashboard}" class="topbar-brand">
+        <strong>University</strong> <span>Help Desk</span>
+    </a>
+    <nav class="topbar-nav">
+        <a th:href="@{/staff/dashboard}" class="active">Dashboard</a>
+        <a th:href="@{/staff/tickets}">Ticket Queue</a>
+        <a th:href="@{/faq}">FAQ</a>
+        <a th:href="@{/notifications}">Notifications</a>
+    </nav>
+    <div class="topbar-user">
+        <span class="user-badge">Support</span>
+        <form th:action="@{/logout}" method="post" style="display:inline; margin:0;">
+            <button type="submit" class="btn-logout">Logout</button>
+        </form>
+    </div>
+</header>
 
-<p>Welcome to the University Help Desk Support Portal.</p>
+<main class="container">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Support Staff Dashboard</h1>
+            <p class="page-subtitle">Process assigned tickets, resolve student inquiries, and post internal notes.</p>
+        </div>
+        <div>
+            <a th:href="@{/staff/tickets}" class="btn">View Assigned Queue</a>
+        </div>
+    </div>
 
-<p><a th:href="@{/notifications}">View Notifications</a></p>
-
-<form th:action="@{/logout}" method="post">
-    <button type="submit">Logout</button>
-</form>
+    <div class="grid grid-3" style="margin-bottom: 28px;">
+        <div class="card">
+            <h2 class="card-title">My Ticket Queue</h2>
+            <p class="muted">Access your assigned tickets, update priorities, and record status changes.</p>
+            <a th:href="@{/staff/tickets}" class="btn btn-sm">Open Queue &rarr;</a>
+        </div>
+        <div class="card">
+            <h2 class="card-title">Notification Center</h2>
+            <p class="muted">Review status transitions, assignment alerts, and system notifications.</p>
+            <a th:href="@{/notifications}" class="btn btn-sm secondary">View Notifications &rarr;</a>
+        </div>
+        <div class="card">
+            <h2 class="card-title">FAQ &amp; Knowledge Base</h2>
+            <p class="muted">Consult reference answers and troubleshooting guides for student support.</p>
+            <a th:href="@{/faq}" class="btn btn-sm secondary">Browse FAQs &rarr;</a>
+        </div>
+    </div>
+</main>
 
 </body>
 </html>

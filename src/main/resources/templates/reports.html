@@ -8,12 +8,21 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-<div class="topbar">
-    <strong>Help Desk Reports</strong>
-    <div>
+<header class="topbar">
+    <a th:href="@{${basePath} + '/dashboard'}" class="topbar-brand">
+        <strong>University</strong> <span>Help Desk</span>
+    </a>
+    <nav class="topbar-nav">
         <a th:href="@{${basePath} + '/dashboard'}">Dashboard</a>
+        <a th:href="@{${basePath} + '/reports'}" class="active">Reports</a>
+        <a th:href="@{/notifications}">Notifications</a>
+    </nav>
+    <div class="topbar-user">
+        <form th:action="@{/logout}" method="post" style="display:inline; margin:0;">
+            <button type="submit" class="btn-logout">Logout</button>
+        </form>
     </div>
-</div>
+</header>
 
 <div class="container">
     <div th:if="${error}" class="alert error" th:text="${error}"></div>

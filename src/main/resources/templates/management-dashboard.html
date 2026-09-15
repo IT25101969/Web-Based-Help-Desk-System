@@ -7,15 +7,22 @@
     <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
 <body>
-<div class="topbar">
-    <strong>University Management Portal</strong>
-    <div style="display: flex; align-items: center; gap: 12px;">
+<header class="topbar">
+    <a th:href="@{/management/dashboard}" class="topbar-brand">
+        <strong>University</strong> <span>Help Desk</span>
+    </a>
+    <nav class="topbar-nav">
+        <a th:href="@{/management/dashboard}" class="active">Dashboard</a>
         <a th:href="@{/management/reports}">Reports &amp; Analytics</a>
+        <a th:href="@{/notifications}">Notifications</a>
+    </nav>
+    <div class="topbar-user">
+        <span class="user-badge">Management</span>
         <form th:action="@{/logout}" method="post" style="display: inline; margin: 0;">
-            <button type="submit" class="btn secondary" style="padding: 6px 12px; font-size: 13px;">Logout</button>
+            <button type="submit" class="btn-logout">Logout</button>
         </form>
     </div>
-</div>
+</header>
 
 <div class="container">
     <h1>University Management Dashboard</h1>

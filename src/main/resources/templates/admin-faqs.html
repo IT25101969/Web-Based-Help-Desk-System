@@ -15,15 +15,28 @@
     </style>
 </head>
 <body>
-<div class="topbar">
-    <strong>FAQ Administration</strong>
-    <div class="nav-links">
-        <a th:href="@{/admin/dashboard}">Admin Dashboard</a>
+<header class="topbar">
+    <a th:href="@{/admin/dashboard}" class="topbar-brand">
+        <strong>University</strong> <span>Help Desk</span>
+    </a>
+    <nav class="topbar-nav">
+        <a th:href="@{/admin/dashboard}">Dashboard</a>
+        <a th:href="@{/admin/tickets}">Tickets</a>
+        <a th:href="@{/admin/reports}">Reports</a>
+        <a th:href="@{/admin/users}">Users</a>
+        <a th:href="@{/admin/faqs}" class="active">FAQ Admin</a>
         <a th:href="@{/admin/faqs/search-analytics}">Search Analytics</a>
-        <a th:href="@{/faq}" target="_blank">Published FAQ &nearr;</a>
-        <a th:href="@{/logout}">Sign Out</a>
+        <a th:href="@{/admin/monitoring}">Monitoring</a>
+        <a th:href="@{/admin/activity-logs}">Logs</a>
+        <a th:href="@{/notifications}">Notifications</a>
+    </nav>
+    <div class="topbar-user">
+        <span class="user-badge">Admin</span>
+        <form th:action="@{/logout}" method="post" style="display: inline; margin: 0;">
+            <button type="submit" class="btn-logout">Logout</button>
+        </form>
     </div>
-</div>
+</header>
 
 <div class="container">
     <div th:if="${success}" class="alert success" th:text="${success}"></div>

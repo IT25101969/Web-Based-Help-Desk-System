@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -21,15 +21,50 @@
     </style>
 </head>
 <body>
-<div class="topbar">
-    <strong>University Help Desk</strong>
-    <div>
+<header class="topbar">
+    <a th:href="@{/dashboard}" class="topbar-brand">
+        <strong>University</strong> <span>Help Desk</span>
+    </a>
+    <nav class="topbar-nav" sec:authorize="hasRole('Student')">
+        <a th:href="@{/student/dashboard}">Dashboard</a>
         <a th:href="@{/student/tickets}">My Tickets</a>
-        <a th:href="@{/faq}">FAQ & Help</a>
         <a th:href="@{/student/tickets/new}">Submit Ticket</a>
-        <a th:href="@{/logout}">Sign Out</a>
+        <a th:href="@{/faq}" class="active">FAQ</a>
+        <a th:href="@{/notifications}">Notifications</a>
+    </nav>
+    <nav class="topbar-nav" sec:authorize="hasAnyRole('Help Desk Support Staff', 'Department Support Team Member')">
+        <a th:href="@{/staff/dashboard}">Dashboard</a>
+        <a th:href="@{/staff/tickets}">Ticket Queue</a>
+        <a th:href="@{/faq}" class="active">FAQ</a>
+        <a th:href="@{/notifications}">Notifications</a>
+    </nav>
+    <nav class="topbar-nav" sec:authorize="hasRole('Department Manager')">
+        <a th:href="@{/manager/dashboard}">Dashboard</a>
+        <a th:href="@{/manager/tickets}">Ticket Queue</a>
+        <a th:href="@{/faq}" class="active">FAQ</a>
+        <a th:href="@{/notifications}">Notifications</a>
+    </nav>
+    <nav class="topbar-nav" sec:authorize="hasRole('System Administrator')">
+        <a th:href="@{/admin/dashboard}">Dashboard</a>
+        <a th:href="@{/admin/tickets}">Tickets</a>
+        <a th:href="@{/admin/faqs}">FAQ Admin</a>
+        <a th:href="@{/admin/reports}">Reports</a>
+        <a th:href="@{/admin/users}">Users</a>
+        <a th:href="@{/faq}" class="active">FAQ</a>
+        <a th:href="@{/notifications}">Notifications</a>
+    </nav>
+    <nav class="topbar-nav" sec:authorize="hasRole('University Management')">
+        <a th:href="@{/management/dashboard}">Dashboard</a>
+        <a th:href="@{/management/reports}">Reports</a>
+        <a th:href="@{/faq}" class="active">FAQ</a>
+        <a th:href="@{/notifications}">Notifications</a>
+    </nav>
+    <div class="topbar-user">
+        <form th:action="@{/logout}" method="post" style="display:inline; margin:0;">
+            <button type="submit" class="btn-logout">Logout</button>
+        </form>
     </div>
-</div>
+</header>
 
 <div class="container">
     <div class="card">
