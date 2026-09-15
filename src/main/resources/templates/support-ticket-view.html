@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Handle Ticket</title><link rel="stylesheet" th:href="@{/css/app.css}"></head>
+<body><div class="topbar"><strong th:text="${ticket.referenceNo}"></strong><div><a th:href="@{${basePath} + '/tickets'}">Back to Queue</a></div></div>
+<div class="container">
+<div th:if="${success}" class="alert success" th:text="${success}"></div><div th:if="${error}" class="alert error" th:text="${error}"></div>
+<div class="card"><h1 th:text="${ticket.subject}"></h1><p th:text="${ticket.description}"></p><div class="actions"><span class="badge" th:text="${ticket.category.categoryName}"></span><span class="badge" th:text="${ticket.priority}"></span><span class="badge" th:text="${ticket.status}"></span></div></div>
+<div class="grid grid-2">
+<div class="card"><h2>Assign / Reassign</h2><form th:action="@{${basePath} + '/tickets/' + ${ticket.ticketId} + '/assign'}" method="post" onsubmit="return confirm('Confirm assignment or reassignment?')">
+<label>Staff<select name="assignedToUserId" required><option value="">Select staff</option><option th:each="c : ${candidates}" th:value="${c.userId}" th:text="${c.displayName + ' (' + c.universityId + ') - Active: ' + c.activeAssignments + (c.overloaded ? ' [OVERLOAD WARNING]' : '')}"></option></select></label>
+<label>Priority<select name="priority"><option th:each="p : ${priorities}" th:value="${p}" th:text="${p}" th:selected="${p == ticket.priority}"></option></select></label>
+<button class="btn" type="submit">Assign Ticket</button></form>
+<p th:if="${#lists.isEmpty(candidates)}" class="muted">No eligible staff found in the mapped department.</p></div>
+<div class="card"><h2>Update Status</h2><form th:action="@{${basePath} + '/tickets/' + ${ticket.ticketId} + '/status'}" method="post"><label>Status<select name="status"><option th:each="s : ${statuses}" th:value="${s}" th:text="${s}" th:selected="${s == ticket.status}"></option></select></label><label>Reason<textarea name="reason" rows="3"></textarea></label><button class="btn" type="submit">Update Status</button></form></div>
+</div>
+<div class="grid grid-2">
+<div class="card"><h2>Assignment History</h2><div th:each="a : ${assignments}"><strong th:text="${a.assignedToUser.firstName + ' ' + a.assignedToUser.lastName}"></strong><span class="badge" th:text="${a.status}"></span><p class="muted" th:text="${#temporals.format(a.assignedDate,'yyyy-MM-dd HH:mm')}"></p></div><p th:if="${#lists.isEmpty(assignments)}" class="muted">Not assigned yet.</p></div>
+<div class="card"><h2>Status History</h2><div th:each="h : ${history}"><strong th:text="${h.newStatus}"></strong><p class="muted" th:text="${#temporals.format(h.changedDate,'yyyy-MM-dd HH:mm')}"></p><p th:text="${h.reason}"></p></div></div>
+</div>
+<div class="card"><h2>Comments</h2><div th:each="c : ${comments}"><div class="actions"><strong th:text="${c.user.firstName + ' ' + c.user.lastName}"></strong><span class="badge" th:text="${c.commentType}"></span></div><p th:text="${c.commentText}"></p></div>
+<form th:action="@{${basePath} + '/tickets/' + ${ticket.ticketId} + '/comments'}" method="post"><label>Comment<textarea name="comment" rows="4" required></textarea></label><label>Visibility<select name="commentType"><option th:each="t : ${commentTypes}" th:value="${t}" th:text="${t}"></option></select></label><button class="btn" type="submit">Add Comment</button></form></div>
+</div></body></html>
