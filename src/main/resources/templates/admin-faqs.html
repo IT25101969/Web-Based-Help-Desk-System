@@ -132,6 +132,12 @@
                             <form th:if="${faq.status.name() != 'ARCHIVED'}" th:action="@{/admin/faqs/{id}/archive(id=${faq.faqId})}" method="post" style="display:inline;">
                                 <button class="btn danger" style="padding: 6px 10px; font-size: 12px;" type="submit">Archive</button>
                             </form>
+
+                            <!-- Delete FAQ Button -->
+                            <form th:action="@{/admin/faqs/{id}/delete(id=${faq.faqId})}" method="post" style="display:inline;"
+                                  onsubmit="return confirm('Are you sure you want to permanently delete this FAQ entry?');">
+                                <button class="btn danger" style="padding: 6px 10px; font-size: 12px; background: #dc2626;" type="submit">Delete</button>
+                            </form>
                         </div>
 
                         <!-- Collapsible Inline Edit Form -->

@@ -131,6 +131,26 @@ public class AdminFaqController {
         return "redirect:/admin/faqs";
     }
 
+    @PostMapping("/{faqId}/delete")
+    public String delete(
+            @PathVariable Long faqId,
+            Authentication authentication,
+            HttpServletRequest request,
+            RedirectAttributes redirectAttributes
+    ) {
+        try {
+            faqService.deleteFaq(
+                    faqId,
+                    authentication != null ? authentication.getName() : null,
+                    request != null ? request.getRemoteAddr() : null
+            );
+            redirectAttributes.addFlashAttribute("success", "FAQ deleted successfully.");
+        } catch (RuntimeException ex) {
+            redirectAttributes.addFlashAttribute("error", ex.getMessage());
+        }
+        return "redirect:/admin/faqs";
+    }
+
     @GetMapping("/search-analytics")
     public String searchAnalytics(Model model) {
         FaqSearchAnalyticsSummary summary = faqService.getSearchAnalytics();

@@ -276,6 +276,19 @@ public class FaqService {
         return faq;
     }
 
+    public void deleteFaq(Long faqId, String adminUniversityId, String ipAddress) {
+        if (faqId == null) {
+            throw new IllegalArgumentException("FAQ ID is required.");
+        }
+        Faq faq = faqRepository.findById(faqId)
+                .orElseThrow(() -> new IllegalArgumentException("FAQ was not found."));
+
+        faqRepository.delete(faq);
+
+        UserAccount adminUser = resolveUser(adminUniversityId);
+        activityLogService.log(adminUser, "FAQ_DELETED", "FAQ", faqId, ipAddress);
+    }
+
     private void validateFaqInput(String question, String answer) {
         if (question == null || question.trim().isEmpty()) {
             throw new IllegalArgumentException("Question is required.");
