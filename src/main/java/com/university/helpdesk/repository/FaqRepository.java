@@ -9,4 +9,5 @@ import java.util.List;
 public interface FaqRepository extends JpaRepository<Faq, Long> {
     List<Faq> findByStatusOrderByQuestionAsc(FaqStatus status);
     List<Faq> findByStatusAndQuestionContainingIgnoreCaseOrderByQuestionAsc(FaqStatus status, String keyword);
+    boolean existsByQuestion(String question);
 }
