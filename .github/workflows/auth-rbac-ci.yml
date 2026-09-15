@@ -1,13 +1,20 @@
-name: Auth RBAC CI
+name: Help Desk CI
 
 on:
   push:
     branches:
       - feature/it25101969-auth-rbac
+      - feature/it25101961-ticket-submission
+      - feature/it25101968-notifications
+      - feature/it25101966-reports-admin
+      - feature/it25101959-ticket-handling
+      - feature/it25101971-faq-guidance
       - codex/full-project-integration
+      - antigravity/full-site
   pull_request:
     branches:
       - develop
+      - main
 
 jobs:
   test:
