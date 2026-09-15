@@ -1,9 +1,132 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>FAQ</title><link rel="stylesheet" th:href="@{/css/app.css}"></head>
-<body><div class="topbar"><strong>FAQ & Guidance</strong><div><a th:href="@{/dashboard}">Dashboard</a><a th:href="@{/student/tickets/new}">Submit Ticket</a></div></div>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FAQ & Knowledge Base | University Help Desk</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <style>
+        .filter-bar { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; margin-top: 12px; }
+        .filter-group { flex: 1 1 240px; }
+        .faq-item { border-left: 4px solid #2563eb; padding-left: 18px; margin-bottom: 18px; }
+        .faq-header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+        .faq-question { font-size: 1.15rem; font-weight: 700; color: #0f172a; margin: 0; }
+        .faq-answer { line-height: 1.6; color: #334155; white-space: pre-line; margin: 8px 0 12px; }
+        .faq-help-link { font-size: 0.92rem; font-weight: 600; color: #2563eb; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
+        .faq-help-link:hover { text-decoration: underline; }
+        .no-results { text-align: center; padding: 36px 18px; }
+        .no-results h2 { margin-bottom: 8px; color: #1e293b; }
+        .no-results p { color: #64748b; margin-bottom: 20px; }
+        .result-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; color: #64748b; font-size: 0.95rem; }
+    </style>
+</head>
+<body>
+<div class="topbar">
+    <strong>University Help Desk</strong>
+    <div>
+        <a th:href="@{/student/tickets}">My Tickets</a>
+        <a th:href="@{/faq}">FAQ & Help</a>
+        <a th:href="@{/student/tickets/new}">Submit Ticket</a>
+        <a th:href="@{/logout}">Sign Out</a>
+    </div>
+</div>
+
 <div class="container">
-<div class="card"><h1>Find a quick solution</h1><form method="get" th:action="@{/faq}"><label>Search<input name="q" th:value="${query}" placeholder="Search FAQ by keyword"></label><button class="btn" type="submit">Search</button></form></div>
-<div class="card" th:each="faq : ${faqs}"><h2 th:text="${faq.question}"></h2><p th:text="${faq.answer}"></p><a th:if="${faq.category != null}" th:href="@{/student/tickets/new(categoryId=${faq.category.categoryId})}">Still need help? Submit a ticket in this category</a></div>
-<div th:if="${#lists.isEmpty(faqs)}" class="card"><p>No matching FAQ was found.</p><a class="btn" th:href="@{/student/tickets/new}">Submit a Ticket</a></div>
-</div></body></html>
+    <div class="card">
+        <h1>Help & Frequently Asked Questions</h1>
+        <p class="muted">Search for instant solutions, troubleshooting steps, and university service information.</p>
+
+        <div th:if="${invalidCategoryAttempted}" class="alert error">
+            The requested category is not available or inactive. Showing all available FAQs.
+        </div>
+
+        <form method="get" th:action="@{/faq}" id="faqSearchForm">
+            <div class="filter-bar">
+                <div class="filter-group" style="flex: 2 1 320px;">
+                    <label for="q">Keyword Search</label>
+                    <input type="text" id="q" name="q" th:value="${query}" placeholder="Search by question, solution, or category...">
+                </div>
+                <div class="filter-group">
+                    <label for="categoryId">Category</label>
+                    <select id="categoryId" name="categoryId">
+                        <option value="">All Categories</option>
+                        <option th:each="category : ${categories}"
+                                th:value="${category.categoryId}"
+                                th:text="${category.categoryName}"
+                                th:selected="${selectedCategoryId != null and selectedCategoryId == category.categoryId}">
+                        </option>
+                    </select>
+                </div>
+                <div class="actions" style="margin-bottom: 5px;">
+                    <button class="btn" type="submit">Search FAQ</button>
+                    <a th:if="${(query != null and !query.isBlank()) or selectedCategoryId != null}"
+                       th:href="@{/faq}" class="btn secondary">Clear Filters</a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="result-meta" th:if="${!#lists.isEmpty(faqs)}">
+        <span th:text="'Showing ' + ${#lists.size(faqs)} + ' published solution' + (${#lists.size(faqs)} == 1 ? '' : 's') + (selectedCategory != null ? ' in ' + selectedCategory.categoryName : '')"></span>
+        <a class="btn secondary" style="font-size: 13px; padding: 6px 12px;" th:href="@{/student/tickets/new(categoryId=${activeCategoryForTicket})}">Still Need Help?</a>
+    </div>
+
+    <!-- FAQ Results List -->
+    <div th:if="${!#lists.isEmpty(faqs)}">
+        <div class="card faq-item" th:each="faq : ${faqs}">
+            <div class="faq-header">
+                <h2 class="faq-question" th:text="${faq.question}"></h2>
+                <span th:if="${faq.category != null}" class="badge" th:text="${faq.category.categoryName}"></span>
+            </div>
+            <p class="faq-answer" th:text="${faq.answer}"></p>
+            <div>
+                <a th:if="${faq.category != null and faq.category.status == 'ACTIVE'}"
+                   class="faq-help-link"
+                   th:href="@{/student/tickets/new(categoryId=${faq.category.categoryId})}">
+                    Still need help? Submit a ticket in <span th:text="${faq.category.categoryName}"></span> &rarr;
+                </a>
+                <a th:if="${faq.category == null or faq.category.status != 'ACTIVE'}"
+                   class="faq-help-link"
+                   th:href="@{/student/tickets/new}">
+                    Still need help? Submit a ticket &rarr;
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Clean No Results State -->
+    <div class="card no-results" th:if="${#lists.isEmpty(faqs)}">
+        <h2>No matching FAQ found</h2>
+        <p th:if="${query != null and !query.isBlank() and selectedCategory != null}">
+            We couldn't find any published answers matching "<strong th:text="${query}"></strong>" in <strong th:text="${selectedCategory.categoryName}"></strong>.
+        </p>
+        <p th:if="${query != null and !query.isBlank() and selectedCategory == null}">
+            We couldn't find any published answers matching "<strong th:text="${query}"></strong>".
+        </p>
+        <p th:if="${(query == null or query.isBlank()) and selectedCategory != null}">
+            There are currently no published FAQs under <strong th:text="${selectedCategory.categoryName}"></strong>.
+        </p>
+        <p th:if="${(query == null or query.isBlank()) and selectedCategory == null}">
+            There are currently no published FAQs available in the knowledge base.
+        </p>
+        <div class="actions" style="justify-content: center;">
+            <a th:if="${activeCategoryForTicket != null}"
+               class="btn"
+               th:href="@{/student/tickets/new(categoryId=${activeCategoryForTicket})}">
+                Submit a Support Ticket in <span th:text="${selectedCategory.categoryName}"></span>
+            </a>
+            <a th:if="${activeCategoryForTicket == null}"
+               class="btn"
+               th:href="@{/student/tickets/new}">
+                Submit a Support Ticket
+            </a>
+            <a th:if="${(query != null and !query.isBlank()) or selectedCategoryId != null}"
+               th:href="@{/faq}"
+               class="btn secondary">
+                View All FAQs
+            </a>
+        </div>
+    </div>
+</div>
+</body>
+</html>
