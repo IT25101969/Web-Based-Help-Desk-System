@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/it25101969-auth-rbac
+      - codex/full-project-integration
   pull_request:
     branches:
       - develop
@@ -44,4 +45,6 @@ jobs:
           cache: maven
 
       - name: Run Maven tests
-        run: ./mvnw -B clean test
+        run: |
+          chmod +x mvnw
+          ./mvnw -B clean test
