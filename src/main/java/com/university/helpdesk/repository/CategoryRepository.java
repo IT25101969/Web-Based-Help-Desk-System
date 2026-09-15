@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface CategoryRepository extends JpaRepository<Category, Long> {
     List<Category> findByStatusIgnoreCaseOrderByCategoryNameAsc(String status);
+    java.util.Optional<Category> findByCategoryName(String categoryName);
 }
