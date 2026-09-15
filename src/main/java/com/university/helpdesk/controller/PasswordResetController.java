@@ -2,6 +2,7 @@ package com.university.helpdesk.controller;
 
 import com.university.helpdesk.service.PasswordResetService;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,6 +15,9 @@ import java.util.Optional;
 public class PasswordResetController {
 
     private final PasswordResetService passwordResetService;
+
+    @Value("${app.security.show-reset-link:true}")
+    private boolean showResetLink;
 
     public PasswordResetController(
             PasswordResetService passwordResetService
@@ -44,12 +48,14 @@ public class PasswordResetController {
                 "If a matching active account exists, a password reset request has been created."
         );
 
-        resetToken.ifPresent(token ->
-                model.addAttribute(
-                        "resetLink",
-                        "/reset-password?token=" + token
-                )
-        );
+        if (showResetLink) {
+            resetToken.ifPresent(token ->
+                    model.addAttribute(
+                            "resetLink",
+                            "/reset-password?token=" + token
+                    )
+            );
+        }
 
         return "forgot-password";
     }
