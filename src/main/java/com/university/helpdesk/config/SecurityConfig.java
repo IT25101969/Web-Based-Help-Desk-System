@@ -59,6 +59,7 @@ public class SecurityConfig {
                         // Student-owned ticket tracking/replies/feedback
                         .requestMatchers(
                                 HttpMethod.GET,
+                                "/student/tickets",
                                 "/student/tickets/**"
                         ).access(new WebExpressionAuthorizationManager(
                                 "hasRole('Student') and hasAuthority('VIEW_OWN_TICKETS')"

@@ -39,6 +39,10 @@ public class SupportDataInitializer {
                     .findByUniversityId("MGR001")
                     .orElse(null);
 
+            UserAccount student2User = userAccountRepository
+                    .findByUniversityId("STU002")
+                    .orElse(null);
+
             if (studentUser != null && !studentRepository.existsById(studentUser.getUserId())) {
                 Student student = new Student();
                 student.setUser(studentUser);
@@ -46,6 +50,15 @@ public class SupportDataInitializer {
                 student.setProgram("Information Technology");
                 student.setAcademicYear(2);
                 studentRepository.save(student);
+            }
+
+            if (student2User != null && !studentRepository.existsById(student2User.getUserId())) {
+                Student student2 = new Student();
+                student2.setUser(student2User);
+                student2.setFaculty("Computing");
+                student2.setProgram("Software Engineering");
+                student2.setAcademicYear(3);
+                studentRepository.save(student2);
             }
 
             Department studentServices = createDepartmentIfMissing(
@@ -150,6 +163,13 @@ public class SupportDataInitializer {
                     finance,
                     "Payment Receipt",
                     "Payment receipt requests and corrections"
+            );
+
+            createCategoryIfMissing(
+                    categoryRepository,
+                    null,
+                    "General Inquiry",
+                    "General university inquiries requiring administrative triage and manual routing"
             );
 
             if (supportUser != null) {

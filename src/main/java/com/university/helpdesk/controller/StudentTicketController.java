@@ -1,16 +1,20 @@
 package com.university.helpdesk.controller;
 
+import com.university.helpdesk.dto.TicketSubmissionForm;
 import com.university.helpdesk.entity.*;
 import com.university.helpdesk.repository.*;
 import com.university.helpdesk.service.*;
 
+import jakarta.validation.Valid;
 import org.springframework.core.io.Resource;
 import org.springframework.http.*;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.io.IOException;
@@ -60,39 +64,62 @@ public class StudentTicketController {
             @RequestParam(value = "categoryId", required = false) Long categoryId,
             Model model
     ) {
+        TicketSubmissionForm form = new TicketSubmissionForm();
+        if (categoryId != null) {
+            form.setCategoryId(categoryId);
+        }
+        form.setTicketType(TicketType.INCIDENT);
+
+        model.addAttribute("form", form);
         model.addAttribute(
                 "categories",
                 categoryRepository.findByStatusIgnoreCaseOrderByCategoryNameAsc("ACTIVE")
         );
         model.addAttribute("ticketTypes", TicketType.values());
-        model.addAttribute("selectedCategoryId", categoryId);
         return "student-ticket-form";
     }
 
     @PostMapping
     public String create(
-            @RequestParam Long categoryId,
-            @RequestParam TicketType ticketType,
-            @RequestParam String subject,
-            @RequestParam String description,
-            @RequestParam(value = "subtypeDetail", required = false) String subtypeDetail,
-            @RequestParam(value = "severity", required = false) String severity,
-            @RequestParam(value = "attachment", required = false) MultipartFile attachment,
+            @Valid @ModelAttribute("form") TicketSubmissionForm form,
+            BindingResult bindingResult,
             Authentication authentication,
+            Model model,
             RedirectAttributes redirectAttributes
     ) {
+        if (bindingResult.hasErrors()) {
+            model.addAttribute(
+                    "categories",
+                    categoryRepository.findByStatusIgnoreCaseOrderByCategoryNameAsc("ACTIVE")
+            );
+            model.addAttribute("ticketTypes", TicketType.values());
+            return "student-ticket-form";
+        }
+
         try {
             Ticket ticket = ticketService.createTicket(
                     authentication.getName(),
-                    categoryId,
-                    ticketType,
-                    subject,
-                    description,
-                    subtypeDetail,
-                    severity
+                    form.getCategoryId(),
+                    form.getTicketType(),
+                    form.getSubject(),
+                    form.getDescription(),
+                    form.getSubtypeDetail(),
+                    form.getSeverity()
             );
 
-            attachmentService.store(ticket, attachment);
+            if (form.getAttachment() != null && !form.getAttachment().isEmpty()) {
+                try {
+                    attachmentService.store(ticket, form.getAttachment());
+                } catch (IllegalArgumentException ex) {
+                    model.addAttribute("error", ex.getMessage());
+                    model.addAttribute(
+                            "categories",
+                            categoryRepository.findByStatusIgnoreCaseOrderByCategoryNameAsc("ACTIVE")
+                    );
+                    model.addAttribute("ticketTypes", TicketType.values());
+                    return "student-ticket-form";
+                }
+            }
 
             redirectAttributes.addFlashAttribute(
                     "success",
@@ -102,8 +129,13 @@ public class StudentTicketController {
             return "redirect:/student/tickets/" + ticket.getTicketId();
 
         } catch (IllegalArgumentException | IllegalStateException | IOException ex) {
-            redirectAttributes.addFlashAttribute("error", ex.getMessage());
-            return "redirect:/student/tickets/new";
+            model.addAttribute("error", ex.getMessage());
+            model.addAttribute(
+                    "categories",
+                    categoryRepository.findByStatusIgnoreCaseOrderByCategoryNameAsc("ACTIVE")
+            );
+            model.addAttribute("ticketTypes", TicketType.values());
+            return "student-ticket-form";
         }
     }
 
@@ -119,6 +151,8 @@ public class StudentTicketController {
         );
 
         model.addAttribute("ticket", ticket);
+        model.addAttribute("incident", ticketService.getIncident(ticketId));
+        model.addAttribute("serviceRequest", ticketService.getServiceRequest(ticketId));
         model.addAttribute(
                 "history",
                 historyRepository.findByTicketTicketIdOrderByChangedDateAsc(ticketId)
@@ -158,7 +192,8 @@ public class StudentTicketController {
                     comment,
                     CommentType.PUBLIC
             );
-        } catch (RuntimeException ex) {
+            redirectAttributes.addFlashAttribute("success", "Reply posted successfully.");
+        } catch (IllegalArgumentException ex) {
             redirectAttributes.addFlashAttribute("error", ex.getMessage());
         }
 
@@ -200,7 +235,7 @@ public class StudentTicketController {
         Attachment attachment = attachmentService.getAttachment(attachmentId);
 
         if (!attachment.getTicket().getTicketId().equals(ticketId)) {
-            throw new SecurityException("Attachment does not belong to this ticket.");
+            throw new AccessDeniedException("Attachment does not belong to this ticket.");
         }
 
         Resource resource = attachmentService.load(attachment);
@@ -222,5 +257,11 @@ public class StudentTicketController {
                                 .toString()
                 )
                 .body(resource);
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public String handleMaxSizeException(RedirectAttributes redirectAttributes) {
+        redirectAttributes.addFlashAttribute("error", "Attachment must be 5 MB or smaller.");
+        return "redirect:/student/tickets/new";
     }
 }

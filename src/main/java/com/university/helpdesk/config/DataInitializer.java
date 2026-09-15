@@ -74,6 +74,19 @@ public class DataInitializer {
                     "Student"
             );
 
+            // Demo Student 2 for ticket ownership and security isolation testing
+            createUserIfMissing(
+                    userAccountRepository,
+                    userRoleRepository,
+                    passwordEncoder,
+                    studentRole,
+                    "STU002",
+                    "student2@university.edu",
+                    "Student@123",
+                    "Demo2",
+                    "Student"
+            );
+
             createUserIfMissing(
                     userAccountRepository,
                     userRoleRepository,

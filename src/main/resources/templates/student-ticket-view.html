@@ -1,41 +1,247 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ticket</title><link rel="stylesheet" th:href="@{/css/app.css}"></head>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${ticket.referenceNo + ' - ' + ticket.subject}">Ticket View - University Help Desk</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
 <body>
-<div class="topbar"><strong th:text="${ticket.referenceNo}">Ticket</strong><div><a th:href="@{/student/tickets}">My Tickets</a><a th:href="@{/notifications}">Notifications</a></div></div>
-<div class="container">
-<div th:if="${success}" class="alert success" th:text="${success}"></div><div th:if="${error}" class="alert error" th:text="${error}"></div>
-<div class="card"><h1 th:text="${ticket.subject}"></h1><p class="muted" th:text="${ticket.category.categoryName}"></p><p th:text="${ticket.description}"></p><div class="actions"><span class="badge" th:text="${ticket.status}"></span><span class="badge" th:text="${ticket.priority}"></span></div></div>
-<div class="grid grid-2">
-<div class="card"><h2>Status History</h2><div th:each="item : ${history}"><strong th:text="${item.newStatus}"></strong> <span class="muted" th:text="${#temporals.format(item.changedDate,'yyyy-MM-dd HH:mm')}"></span><p th:text="${item.reason}"></p></div></div>
-<div class="card"><h2>Attachments</h2><div th:each="item : ${attachments}"><a th:href="@{/student/tickets/{tid}/attachments/{aid}(tid=${ticket.ticketId},aid=${item.attachmentId})}" th:text="${item.fileName}"></a></div><p th:if="${#lists.isEmpty(attachments)}" class="muted">No attachments.</p></div>
-</div>
-<div class="card"><h2>Conversation</h2><div th:each="item : ${comments}"><strong th:text="${item.user.firstName + ' ' + item.user.lastName}"></strong><span class="muted" th:text="${' · ' + #temporals.format(item.createdDate,'yyyy-MM-dd HH:mm')}"></span><p th:text="${item.commentText}"></p></div>
-<form th:action="@{/student/tickets/{id}/comments(id=${ticket.ticketId})}" method="post"><label>Add reply<textarea name="comment" rows="4" required></textarea></label><button class="btn" type="submit">Post Reply</button></form>
-</div>
 
-<div class="card">
-<h2>Feedback</h2>
-<div th:if="${feedback != null}">
-<p><strong>Rating:</strong> <span th:text="${feedback.rating + ' / 5'}"></span></p>
-<p th:if="${feedback.comment != null}" th:text="${feedback.comment}"></p>
-<p class="muted" th:text="${#temporals.format(feedback.submittedDate,'yyyy-MM-dd HH:mm')}"></p>
-</div>
-<form th:if="${canSubmitFeedback}" th:action="@{/student/tickets/{id}/feedback(id=${ticket.ticketId})}" method="post">
-<label>Rating
-<select name="rating" required>
-<option value="5">5 - Excellent</option>
-<option value="4">4 - Good</option>
-<option value="3">3 - Average</option>
-<option value="2">2 - Poor</option>
-<option value="1">1 - Very Poor</option>
-</select>
-</label>
-<label>Comment<textarea name="feedbackComment" rows="3" maxlength="1000"></textarea></label>
-<button class="btn" type="submit">Submit Feedback</button>
-</form>
-<p th:if="${feedback == null and !canSubmitFeedback}" class="muted">Feedback becomes available after the ticket is resolved or closed.</p>
-</div>
+<header class="topbar">
+    <a th:href="@{/student/dashboard}" class="topbar-brand">
+        <strong>University</strong> <span>Help Desk</span>
+    </a>
+    <nav class="topbar-nav">
+        <a th:href="@{/student/dashboard}">Dashboard</a>
+        <a th:href="@{/student/tickets}">My Tickets</a>
+        <a th:href="@{/student/tickets/new}">Submit Ticket</a>
+        <a th:href="@{/faq}">FAQ</a>
+        <a th:href="@{/notifications}">Notifications</a>
+    </nav>
+    <div class="topbar-user">
+        <form th:action="@{/logout}" method="post" style="display:inline; margin:0;">
+            <button type="submit" class="btn-logout">Logout</button>
+        </form>
+    </div>
+</header>
 
-</div>
-</body></html>
+<main class="container">
+    <!-- Breadcrumb & Actions Header -->
+    <div class="page-header">
+        <div>
+            <div style="font-family: monospace; font-size: 0.95rem; font-weight: 700; color: var(--primary); margin-bottom: 4px;"
+                 th:text="${ticket.referenceNo}">HD-20260915-ABCD</div>
+            <h1 class="page-title" th:text="${ticket.subject}">Ticket Subject</h1>
+        </div>
+        <div>
+            <a th:href="@{/student/tickets}" class="btn secondary">← Back to My Tickets</a>
+        </div>
+    </div>
+
+    <!-- Alert Messages -->
+    <div th:if="${success}" class="alert success" id="alert-success">
+        <span>✅</span>
+        <span th:text="${success}">Action completed successfully.</span>
+    </div>
+    <div th:if="${error}" class="alert error" id="alert-error">
+        <span>⚠️</span>
+        <span th:text="${error}">An error occurred.</span>
+    </div>
+
+    <!-- Main Ticket Overview Card -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Ticket Information</h2>
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <span class="badge badge-type" th:text="${ticket.ticketType}">INCIDENT</span>
+                <span th:class="'badge badge-priority-' + ${#strings.toLowerCase(ticket.priority)}"
+                      th:text="${ticket.priority}">MEDIUM</span>
+                <span th:class="'badge badge-status-' + ${#strings.replace(#strings.toLowerCase(ticket.status),'_','-')}"
+                      th:text="${ticket.status}">NEW</span>
+            </div>
+        </div>
+
+        <!-- Structured Metadata Grid -->
+        <div class="detail-list">
+            <div>
+                <div class="detail-item-label">Category</div>
+                <div class="detail-item-value" th:text="${ticket.category.categoryName}">Wi-Fi Issue</div>
+            </div>
+            <div>
+                <div class="detail-item-label">Mapped Department</div>
+                <div class="detail-item-value"
+                     th:text="${ticket.category.department != null ? ticket.category.department.departmentName : 'General Inquiry (Manual Routing)'}">
+                    IT Support
+                </div>
+            </div>
+            <div>
+                <div class="detail-item-label">Created Date</div>
+                <div class="detail-item-value"
+                     th:text="${#temporals.format(ticket.createdDate, 'yyyy-MM-dd HH:mm:ss')}">
+                    2026-09-15 08:30:00
+                </div>
+            </div>
+            <div>
+                <div class="detail-item-label">Last Updated</div>
+                <div class="detail-item-value"
+                     th:text="${#temporals.format(ticket.updatedDate, 'yyyy-MM-dd HH:mm:ss')}">
+                    2026-09-15 08:30:00
+                </div>
+            </div>
+
+            <!-- Subtype specific info -->
+            <div th:if="${incident != null and incident.incidentType != null}">
+                <div class="detail-item-label">Incident Type</div>
+                <div class="detail-item-value" th:text="${incident.incidentType}">Hardware Failure</div>
+            </div>
+            <div th:if="${incident != null and incident.severity != null}">
+                <div class="detail-item-label">Reported Severity</div>
+                <div class="detail-item-value" th:text="${incident.severity}">Medium</div>
+            </div>
+            <div th:if="${serviceRequest != null and serviceRequest.requestedService != null}">
+                <div class="detail-item-label">Requested Service</div>
+                <div class="detail-item-value" th:text="${serviceRequest.requestedService}">Software Access</div>
+            </div>
+            <div th:if="${serviceRequest != null and serviceRequest.requestedDate != null}">
+                <div class="detail-item-label">Requested Date</div>
+                <div class="detail-item-value" th:text="${serviceRequest.requestedDate}">2026-09-15</div>
+            </div>
+        </div>
+
+        <!-- Description -->
+        <div>
+            <div class="detail-item-label" style="margin-bottom: 8px;">Description</div>
+            <div style="background: #f8fafc; padding: 18px; border-radius: var(--radius-md); border: 1px solid var(--border); white-space: pre-wrap; font-size: 0.95rem; line-height: 1.6;"
+                 th:text="${ticket.description}">
+                Full issue description
+            </div>
+        </div>
+    </div>
+
+    <!-- Status History & Attachments in 2 columns -->
+    <div class="grid grid-2">
+        <!-- Status History Card -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Status History</h2>
+            </div>
+            <div th:if="${!#lists.isEmpty(history)}" class="timeline">
+                <div class="timeline-item" th:each="item : ${history}">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-content">
+                        <div class="timeline-header">
+                            <span class="timeline-title">
+                                <span th:if="${item.oldStatus != null}" th:text="${item.oldStatus + ' → '}"></span>
+                                <span th:text="${item.newStatus}" style="color: var(--primary);">NEW</span>
+                            </span>
+                            <span th:text="${#temporals.format(item.changedDate, 'yyyy-MM-dd HH:mm')}">2026-09-15 08:30</span>
+                        </div>
+                        <div style="font-size: 0.85rem; color: #475569;" th:text="${item.reason}">Ticket submitted by student.</div>
+                        <div th:if="${item.changedByUser != null}" style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">
+                            By: <span th:text="${item.changedByUser.firstName + ' ' + item.changedByUser.lastName}">Demo Student</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div th:if="${#lists.isEmpty(history)}" class="empty-state" style="padding: 24px;">
+                <p>No status history recorded yet.</p>
+            </div>
+        </div>
+
+        <!-- Attachments Card -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Attachments</h2>
+            </div>
+            <div th:if="${!#lists.isEmpty(attachments)}">
+                <div th:each="item : ${attachments}">
+                    <a th:href="@{/student/tickets/{tid}/attachments/{aid}(tid=${ticket.ticketId},aid=${item.attachmentId})}"
+                       class="attachment-pill">
+                        <span>📄</span>
+                        <span th:text="${item.fileName}" style="font-weight: 600;">document.pdf</span>
+                        <span class="file-size-tag" th:text="${(item.fileSize / 1024) + ' KB'}">120 KB</span>
+                        <span style="color: var(--primary); font-size: 0.8rem; font-weight: 700;">Download ↓</span>
+                    </a>
+                </div>
+            </div>
+            <div th:if="${#lists.isEmpty(attachments)}" class="empty-state" style="padding: 24px;">
+                <div style="font-size: 1.8rem; margin-bottom: 6px;">📎</div>
+                <p>No attachments uploaded with this ticket.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Conversation & Public Comments Card -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Conversation & Support Replies</h2>
+        </div>
+
+        <div th:if="${!#lists.isEmpty(comments)}" style="margin-bottom: 24px;">
+            <div class="comment-item" th:each="item : ${comments}">
+                <div class="comment-header">
+                    <span class="comment-author" th:text="${item.user.firstName + ' ' + item.user.lastName}">Support Staff</span>
+                    <span class="comment-time" th:text="${#temporals.format(item.createdDate, 'yyyy-MM-dd HH:mm')}">2026-09-15 09:00</span>
+                </div>
+                <p class="comment-text" th:text="${item.commentText}">Comment text goes here.</p>
+            </div>
+        </div>
+
+        <div th:if="${#lists.isEmpty(comments)}" class="empty-state" style="padding: 20px 0;">
+            <p>No comments or replies yet. You can post a public reply below to provide further details or ask a question.</p>
+        </div>
+
+        <!-- Add Reply Form -->
+        <form th:action="@{/student/tickets/{id}/comments(id=${ticket.ticketId})}" method="post" style="border-top: 1px solid var(--border-subtle); padding-top: 20px;">
+            <div class="form-group">
+                <label for="comment-text">Post a Public Reply</label>
+                <textarea id="comment-text" name="comment" rows="4" required
+                          placeholder="Type your message or response to support staff here..."></textarea>
+            </div>
+            <button type="submit" class="btn" id="btn-post-comment">Post Reply</button>
+        </form>
+    </div>
+
+    <!-- Feedback Section (When Resolved/Closed) -->
+    <div class="card" th:if="${ticket.status.name() == 'RESOLVED' or ticket.status.name() == 'CLOSED' or feedback != null}">
+        <div class="card-header">
+            <h2 class="card-title">Service Feedback</h2>
+        </div>
+
+        <div th:if="${feedback != null}">
+            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-md); padding: 18px;">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                    <strong style="color: #166534;">Your Rating:</strong>
+                    <span style="font-size: 1.1rem; color: #eab308;" th:text="${'★'.repeat(feedback.rating) + '☆'.repeat(5 - feedback.rating)}">★★★★★</span>
+                    <span style="font-weight: 700; color: #166534;" th:text="${feedback.rating + ' / 5'}">5 / 5</span>
+                </div>
+                <p th:if="${feedback.comment != null}" th:text="${feedback.comment}" style="color: #1e293b; margin: 8px 0;"></p>
+                <div style="font-size: 0.8rem; color: #15803d;" th:text="${'Submitted on ' + #temporals.format(feedback.submittedDate, 'yyyy-MM-dd HH:mm')}">Submitted date</div>
+            </div>
+        </div>
+
+        <form th:if="${canSubmitFeedback}" th:action="@{/student/tickets/{id}/feedback(id=${ticket.ticketId})}" method="post">
+            <p style="color: var(--text-muted); margin-bottom: 16px;">This ticket is resolved. Please take a moment to rate the service you received.</p>
+            <div class="form-group">
+                <label for="rating">Satisfaction Rating <span class="required">*</span></label>
+                <select id="rating" name="rating" required>
+                    <option value="5">★★★★★ 5 - Excellent (Fast and helpful resolution)</option>
+                    <option value="4">★★★★☆ 4 - Good (Issue resolved satisfactorily)</option>
+                    <option value="3">★★★☆☆ 3 - Average (Acceptable service)</option>
+                    <option value="2">★★☆☆☆ 2 - Poor (Slow or partial resolution)</option>
+                    <option value="1">★☆☆☆☆ 1 - Very Poor (Unsatisfactory support)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="feedbackComment">Additional Comments (Optional)</label>
+                <textarea id="feedbackComment" name="feedbackComment" rows="3" maxlength="1000"
+                          placeholder="Tell us what went well or how we can improve our service..."></textarea>
+            </div>
+            <button type="submit" class="btn" id="btn-submit-feedback">Submit Feedback</button>
+        </form>
+    </div>
+</main>
+
+</body>
+</html>
