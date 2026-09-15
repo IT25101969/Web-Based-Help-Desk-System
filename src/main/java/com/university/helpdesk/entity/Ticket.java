@@ -17,7 +17,7 @@ public class Ticket {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "Student_ID", nullable = false)
-    private UserAccount student;
+    private Student student;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "Category_ID", nullable = false)
@@ -72,8 +72,8 @@ public class Ticket {
     public void setTicketId(Long ticketId) { this.ticketId = ticketId; }
     public String getReferenceNo() { return referenceNo; }
     public void setReferenceNo(String referenceNo) { this.referenceNo = referenceNo; }
-    public UserAccount getStudent() { return student; }
-    public void setStudent(UserAccount student) { this.student = student; }
+    public Student getStudent() { return student; }
+    public void setStudent(Student student) { this.student = student; }
     public Category getCategory() { return category; }
     public void setCategory(Category category) { this.category = category; }
     public TicketType getTicketType() { return ticketType; }
