@@ -44,19 +44,30 @@ public class AdminFaqController {
             @RequestParam(defaultValue = "DRAFT") FaqStatus status,
             RedirectAttributes redirectAttributes
     ) {
-        Faq faq = new Faq();
-        faq.setQuestion(question.trim());
-        faq.setAnswer(answer.trim());
-        faq.setStatus(status);
+        try {
+            if (question == null || question.trim().isEmpty()) {
+                throw new IllegalArgumentException("Question is required.");
+            }
+            if (answer == null || answer.trim().isEmpty()) {
+                throw new IllegalArgumentException("Answer is required.");
+            }
 
-        if (categoryId != null) {
-            Category category = categoryRepository.findById(categoryId)
-                    .orElseThrow(() -> new IllegalArgumentException("Category was not found."));
-            faq.setCategory(category);
+            Faq faq = new Faq();
+            faq.setQuestion(question.trim());
+            faq.setAnswer(answer.trim());
+            faq.setStatus(status != null ? status : FaqStatus.DRAFT);
+
+            if (categoryId != null) {
+                Category category = categoryRepository.findById(categoryId)
+                        .orElseThrow(() -> new IllegalArgumentException("Category was not found."));
+                faq.setCategory(category);
+            }
+
+            faqRepository.save(faq);
+            redirectAttributes.addFlashAttribute("success", "FAQ created.");
+        } catch (RuntimeException ex) {
+            redirectAttributes.addFlashAttribute("error", ex.getMessage());
         }
-
-        faqRepository.save(faq);
-        redirectAttributes.addFlashAttribute("success", "FAQ created.");
         return "redirect:/admin/faqs";
     }
 
@@ -69,21 +80,32 @@ public class AdminFaqController {
             @RequestParam FaqStatus status,
             RedirectAttributes redirectAttributes
     ) {
-        Faq faq = faqRepository.findById(faqId)
-                .orElseThrow(() -> new IllegalArgumentException("FAQ was not found."));
+        try {
+            if (question == null || question.trim().isEmpty()) {
+                throw new IllegalArgumentException("Question is required.");
+            }
+            if (answer == null || answer.trim().isEmpty()) {
+                throw new IllegalArgumentException("Answer is required.");
+            }
 
-        faq.setQuestion(question.trim());
-        faq.setAnswer(answer.trim());
-        faq.setStatus(status);
-        faq.setCategory(
-                categoryId == null
-                        ? null
-                        : categoryRepository.findById(categoryId)
-                            .orElseThrow(() -> new IllegalArgumentException("Category was not found."))
-        );
+            Faq faq = faqRepository.findById(faqId)
+                    .orElseThrow(() -> new IllegalArgumentException("FAQ was not found."));
 
-        faqRepository.save(faq);
-        redirectAttributes.addFlashAttribute("success", "FAQ updated.");
+            faq.setQuestion(question.trim());
+            faq.setAnswer(answer.trim());
+            faq.setStatus(status != null ? status : FaqStatus.DRAFT);
+            faq.setCategory(
+                    categoryId == null
+                            ? null
+                            : categoryRepository.findById(categoryId)
+                                .orElseThrow(() -> new IllegalArgumentException("Category was not found."))
+            );
+
+            faqRepository.save(faq);
+            redirectAttributes.addFlashAttribute("success", "FAQ updated.");
+        } catch (RuntimeException ex) {
+            redirectAttributes.addFlashAttribute("error", ex.getMessage());
+        }
         return "redirect:/admin/faqs";
     }
 
@@ -92,11 +114,15 @@ public class AdminFaqController {
             @PathVariable Long faqId,
             RedirectAttributes redirectAttributes
     ) {
-        Faq faq = faqRepository.findById(faqId)
-                .orElseThrow(() -> new IllegalArgumentException("FAQ was not found."));
-        faq.setStatus(FaqStatus.ARCHIVED);
-        faqRepository.save(faq);
-        redirectAttributes.addFlashAttribute("success", "FAQ archived.");
+        try {
+            Faq faq = faqRepository.findById(faqId)
+                    .orElseThrow(() -> new IllegalArgumentException("FAQ was not found."));
+            faq.setStatus(FaqStatus.ARCHIVED);
+            faqRepository.save(faq);
+            redirectAttributes.addFlashAttribute("success", "FAQ archived.");
+        } catch (RuntimeException ex) {
+            redirectAttributes.addFlashAttribute("error", ex.getMessage());
+        }
         return "redirect:/admin/faqs";
     }
 }

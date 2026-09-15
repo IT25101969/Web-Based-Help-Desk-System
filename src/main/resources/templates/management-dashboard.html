@@ -2,17 +2,85 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>University Management Dashboard</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
 <body>
+<div class="topbar">
+    <strong>University Management Portal</strong>
+    <div style="display: flex; align-items: center; gap: 12px;">
+        <a th:href="@{/management/reports}">Reports &amp; Analytics</a>
+        <form th:action="@{/logout}" method="post" style="display: inline; margin: 0;">
+            <button type="submit" class="btn secondary" style="padding: 6px 12px; font-size: 13px;">Logout</button>
+        </form>
+    </div>
+</div>
 
-<h1>University Management Dashboard</h1>
+<div class="container">
+    <h1>University Management Dashboard</h1>
+    <p class="muted">High-level help desk operational overview and departmental performance indicators.</p>
 
-<p>Welcome to the University Management Portal.</p>
+    <div class="card" style="margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div>
+                <h3 style="margin: 0 0 4px 0;">Executive Reports &amp; CSV Export</h3>
+                <p class="muted" style="margin: 0;">Access custom date range filters, department breakdown, and spreadsheet exports.</p>
+            </div>
+            <div>
+                <a th:href="@{/management/reports}" class="btn">Open Detailed Reports</a>
+            </div>
+        </div>
+    </div>
 
-<form th:action="@{/logout}" method="post">
-    <button type="submit">Logout</button>
-</form>
+    <!-- Metric Cards -->
+    <div class="grid grid-2">
+        <div class="card">
+            <h3>Total Tickets</h3>
+            <p style="font-size: 28px; font-weight: 700; margin: 4px 0;" th:text="${summary.totalTickets}"></p>
+            <p class="muted">Total ticket volume across all departments.</p>
+        </div>
+        <div class="card">
+            <h3>Resolution Rate</h3>
+            <p style="font-size: 28px; font-weight: 700; margin: 4px 0; color: #10b981;"
+               th:text="${#numbers.formatDecimal(summary.resolutionRate,1,1) + '%'}"></p>
+            <p class="muted">Percentage of completed tickets (Resolved + Closed).</p>
+        </div>
+        <div class="card">
+            <h3>Average Response Time</h3>
+            <p style="font-size: 28px; font-weight: 700; margin: 4px 0; color: #2563eb;"
+               th:text="${#numbers.formatDecimal(summary.averageResponseHours,1,2) + ' hours'}"></p>
+            <p class="muted">Average time from submission to first assignment.</p>
+        </div>
+        <div class="card">
+            <h3>Average Resolution Time</h3>
+            <p style="font-size: 28px; font-weight: 700; margin: 4px 0; color: #8b5cf6;"
+               th:text="${#numbers.formatDecimal(summary.averageResolutionHours,1,2) + ' hours'}"></p>
+            <p class="muted">Average time from submission to ticket resolution.</p>
+        </div>
+    </div>
 
+    <!-- Department Volumes Summary Table -->
+    <div class="card">
+        <h2>Department Ticket Volume Summary</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Department</th>
+                    <th>Ticket Volume</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="entry : ${summary.departmentVolumes}">
+                    <td th:text="${entry.key}"></td>
+                    <td><strong th:text="${entry.value}"></strong></td>
+                </tr>
+                <tr th:if="${#maps.isEmpty(summary.departmentVolumes)}">
+                    <td colspan="2" class="muted">No department ticket records available.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
 </body>
 </html>

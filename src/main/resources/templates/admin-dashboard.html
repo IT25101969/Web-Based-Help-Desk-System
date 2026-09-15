@@ -2,17 +2,95 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>System Administrator Dashboard</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
 <body>
+<div class="topbar">
+    <strong>System Administrator Portal</strong>
+    <div style="display: flex; align-items: center; gap: 12px;">
+        <a th:href="@{/admin/reports}">Reports</a>
+        <a th:href="@{/admin/users}">Users</a>
+        <a th:href="@{/admin/monitoring}">Monitoring</a>
+        <a th:href="@{/admin/activity-logs}">Activity Logs</a>
+        <a th:href="@{/admin/faqs}">FAQ Admin</a>
+        <form th:action="@{/logout}" method="post" style="display: inline; margin: 0;">
+            <button type="submit" class="btn secondary" style="padding: 6px 12px; font-size: 13px;">Logout</button>
+        </form>
+    </div>
+</div>
 
-<h1>System Administrator Dashboard</h1>
+<div class="container">
+    <h1>System Administrator Dashboard</h1>
+    <p class="muted">Welcome to the central administrative management console.</p>
 
-<p>Welcome to the System Administration Portal.</p>
+    <!-- Quick Navigation Links -->
+    <div class="card">
+        <h2>Quick Administration Links</h2>
+        <div class="actions">
+            <a th:href="@{/admin/reports}" class="btn">Help Desk Reports</a>
+            <a th:href="@{/admin/users}" class="btn">User Accounts Management</a>
+            <a th:href="@{/admin/monitoring}" class="btn">System Health Monitoring</a>
+            <a th:href="@{/admin/activity-logs}" class="btn">Activity &amp; Audit Logs</a>
+            <a th:href="@{/admin/faqs}" class="btn secondary">Manage FAQs</a>
+        </div>
+    </div>
 
-<form th:action="@{/logout}" method="post">
-    <button type="submit">Logout</button>
-</form>
+    <!-- Metric Cards -->
+    <div class="grid grid-2">
+        <div class="card">
+            <h3>Total Tickets</h3>
+            <p style="font-size: 28px; font-weight: 700; margin: 4px 0;" th:text="${totalTickets}"></p>
+            <p class="muted">All-time tickets across departments.</p>
+        </div>
+        <div class="card">
+            <h3>Unresolved Tickets</h3>
+            <p style="font-size: 28px; font-weight: 700; margin: 4px 0; color: #2563eb;" th:text="${unresolvedTickets}"></p>
+            <p class="muted">Tickets currently NEW, ASSIGNED, IN_PROGRESS, or ESCALATED.</p>
+        </div>
+        <div class="card" style="grid-column: 1 / -1; border-left: 4px solid #ef4444;">
+            <h3>Locked / Suspicious Users</h3>
+            <p style="font-size: 28px; font-weight: 700; margin: 4px 0; color: #b91c1c;" th:text="${suspiciousUserCount}"></p>
+            <p class="muted">Accounts with &ge; 3 failed login attempts or in LOCKED status. <a th:href="@{/admin/users}">Review Accounts</a></p>
+        </div>
+    </div>
 
+    <!-- Recent Activity -->
+    <div class="card">
+        <h2>Recent System Activity</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Actor</th>
+                    <th>Action</th>
+                    <th>Entity Type</th>
+                    <th>Entity ID</th>
+                    <th>IP Address</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="log : ${recentActivities}">
+                    <td th:text="${#temporals.format(log.timestamp, 'yyyy-MM-dd HH:mm:ss')}"></td>
+                    <td>
+                        <span th:if="${log.user != null}" th:text="${log.user.universityId + ' (' + log.user.firstName + ' ' + log.user.lastName + ')'}"></span>
+                        <span th:if="${log.user == null}" class="muted">System / Anonymous</span>
+                    </td>
+                    <td><span class="badge" th:text="${log.action}"></span></td>
+                    <td th:text="${log.entityType != null ? log.entityType : '-'}"></td>
+                    <td th:text="${log.entityId != null ? log.entityId : '-'}"></td>
+                    <td th:text="${log.ipAddress != null ? log.ipAddress : '-'}"></td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(recentActivities)}">
+                    <td colspan="6" class="muted">No recent activity logs.</td>
+                </tr>
+            </tbody>
+        </table>
+        <div style="margin-top: 14px;">
+            <a th:href="@{/admin/activity-logs}" class="btn secondary">View All Activity Logs</a>
+        </div>
+    </div>
+</div>
 </body>
 </html>
