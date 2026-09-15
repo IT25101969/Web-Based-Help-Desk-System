@@ -10,6 +10,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.expression.WebExpressionAuthorizationManager;
 
 @Configuration
 public class SecurityConfig {
@@ -40,64 +41,129 @@ public class SecurityConfig {
                                 "/images/**"
                         ).permitAll()
 
-                        // Permission-level RBAC: student ticket submission/tracking
+                        // Student ticket submission: role + permission
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/student/tickets/new"
-                        ).hasAuthority("SUBMIT_TICKET")
+                        ).access(new WebExpressionAuthorizationManager(
+                                "hasRole('Student') and hasAuthority('SUBMIT_TICKET')"
+                        ))
 
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/student/tickets"
-                        ).hasAuthority("SUBMIT_TICKET")
+                        ).access(new WebExpressionAuthorizationManager(
+                                "hasRole('Student') and hasAuthority('SUBMIT_TICKET')"
+                        ))
 
+                        // Student-owned ticket tracking/replies/feedback
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/student/tickets/**"
-                        ).hasAuthority("VIEW_OWN_TICKETS")
+                        ).access(new WebExpressionAuthorizationManager(
+                                "hasRole('Student') and hasAuthority('VIEW_OWN_TICKETS')"
+                        ))
 
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/student/tickets/*/comments",
                                 "/student/tickets/*/feedback"
-                        ).hasAuthority("VIEW_OWN_TICKETS")
+                        ).access(new WebExpressionAuthorizationManager(
+                                "hasRole('Student') and hasAuthority('VIEW_OWN_TICKETS')"
+                        ))
 
-                        // Permission-level RBAC: ticket handling
+                        // Help Desk / Department Support ticket handling
                         .requestMatchers(
                                 HttpMethod.POST,
-                                "/staff/tickets/*/assign",
-                                "/manager/tickets/*/assign",
-                                "/admin/tickets/*/assign"
-                        ).hasAuthority("ASSIGN_TICKET")
+                                "/staff/tickets/*/assign"
+                        ).access(new WebExpressionAuthorizationManager(
+                                "hasAnyRole('Help Desk Support Staff','Department Support Team Member') " +
+                                        "and hasAuthority('ASSIGN_TICKET')"
+                        ))
 
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/staff/tickets/*/status",
-                                "/staff/tickets/*/comments",
-                                "/manager/tickets/*/status",
-                                "/manager/tickets/*/comments",
-                                "/admin/tickets/*/status",
-                                "/admin/tickets/*/comments"
-                        ).hasAuthority("UPDATE_TICKET")
+                                "/staff/tickets/*/comments"
+                        ).access(new WebExpressionAuthorizationManager(
+                                "hasAnyRole('Help Desk Support Staff','Department Support Team Member') " +
+                                        "and hasAuthority('UPDATE_TICKET')"
+                        ))
 
                         .requestMatchers(
                                 HttpMethod.GET,
-                                "/staff/tickets/**",
-                                "/manager/tickets/**",
-                                "/admin/tickets/**"
-                        ).hasAuthority("VIEW_ALL_TICKETS")
+                                "/staff/tickets/**"
+                        ).access(new WebExpressionAuthorizationManager(
+                                "hasAnyRole('Help Desk Support Staff','Department Support Team Member') " +
+                                        "and hasAuthority('VIEW_ALL_TICKETS')"
+                        ))
 
-                        // Permission-level RBAC: administration
-                        .requestMatchers("/admin/users/**")
-                        .hasAuthority("MANAGE_USERS")
-
-                        .requestMatchers("/admin/faqs/**")
-                        .hasAuthority("MANAGE_FAQ")
+                        // Department Manager ticket handling
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/manager/tickets/*/assign"
+                        ).access(new WebExpressionAuthorizationManager(
+                                "hasRole('Department Manager') and hasAuthority('ASSIGN_TICKET')"
+                        ))
 
                         .requestMatchers(
-                                "/admin/reports/**",
-                                "/management/reports/**"
-                        ).hasAuthority("VIEW_REPORTS")
+                                HttpMethod.POST,
+                                "/manager/tickets/*/status",
+                                "/manager/tickets/*/comments"
+                        ).access(new WebExpressionAuthorizationManager(
+                                "hasRole('Department Manager') and hasAuthority('UPDATE_TICKET')"
+                        ))
+
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/manager/tickets/**"
+                        ).access(new WebExpressionAuthorizationManager(
+                                "hasRole('Department Manager') and hasAuthority('VIEW_ALL_TICKETS')"
+                        ))
+
+                        // System Administrator ticket handling
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/admin/tickets/*/assign"
+                        ).access(new WebExpressionAuthorizationManager(
+                                "hasRole('System Administrator') and hasAuthority('ASSIGN_TICKET')"
+                        ))
+
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/admin/tickets/*/status",
+                                "/admin/tickets/*/comments"
+                        ).access(new WebExpressionAuthorizationManager(
+                                "hasRole('System Administrator') and hasAuthority('UPDATE_TICKET')"
+                        ))
+
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/admin/tickets/**"
+                        ).access(new WebExpressionAuthorizationManager(
+                                "hasRole('System Administrator') and hasAuthority('VIEW_ALL_TICKETS')"
+                        ))
+
+                        // Administration permissions
+                        .requestMatchers("/admin/users/**")
+                        .access(new WebExpressionAuthorizationManager(
+                                "hasRole('System Administrator') and hasAuthority('MANAGE_USERS')"
+                        ))
+
+                        .requestMatchers("/admin/faqs/**")
+                        .access(new WebExpressionAuthorizationManager(
+                                "hasRole('System Administrator') and hasAuthority('MANAGE_FAQ')"
+                        ))
+
+                        .requestMatchers("/admin/reports/**")
+                        .access(new WebExpressionAuthorizationManager(
+                                "hasRole('System Administrator') and hasAuthority('VIEW_REPORTS')"
+                        ))
+
+                        .requestMatchers("/management/reports/**")
+                        .access(new WebExpressionAuthorizationManager(
+                                "hasRole('University Management') and hasAuthority('VIEW_REPORTS')"
+                        ))
 
                         // Role-level area boundaries
                         .requestMatchers("/student/**")
