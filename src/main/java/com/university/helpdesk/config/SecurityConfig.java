@@ -5,6 +5,7 @@ import com.university.helpdesk.security.RoleBasedAuthenticationSuccessHandler;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -28,7 +29,7 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests(auth -> auth
 
-                        // Public pages
+                        // Public authentication resources
                         .requestMatchers(
                                 "/login",
                                 "/forgot-password",
@@ -39,30 +40,85 @@ public class SecurityConfig {
                                 "/images/**"
                         ).permitAll()
 
-                        // Student
+                        // Permission-level RBAC: student ticket submission/tracking
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/student/tickets/new"
+                        ).hasAuthority("SUBMIT_TICKET")
+
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/student/tickets"
+                        ).hasAuthority("SUBMIT_TICKET")
+
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/student/tickets/**"
+                        ).hasAuthority("VIEW_OWN_TICKETS")
+
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/student/tickets/*/comments",
+                                "/student/tickets/*/feedback"
+                        ).hasAuthority("VIEW_OWN_TICKETS")
+
+                        // Permission-level RBAC: ticket handling
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/staff/tickets/*/assign",
+                                "/manager/tickets/*/assign",
+                                "/admin/tickets/*/assign"
+                        ).hasAuthority("ASSIGN_TICKET")
+
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/staff/tickets/*/status",
+                                "/staff/tickets/*/comments",
+                                "/manager/tickets/*/status",
+                                "/manager/tickets/*/comments",
+                                "/admin/tickets/*/status",
+                                "/admin/tickets/*/comments"
+                        ).hasAuthority("UPDATE_TICKET")
+
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/staff/tickets/**",
+                                "/manager/tickets/**",
+                                "/admin/tickets/**"
+                        ).hasAuthority("VIEW_ALL_TICKETS")
+
+                        // Permission-level RBAC: administration
+                        .requestMatchers("/admin/users/**")
+                        .hasAuthority("MANAGE_USERS")
+
+                        .requestMatchers("/admin/faqs/**")
+                        .hasAuthority("MANAGE_FAQ")
+
+                        .requestMatchers(
+                                "/admin/reports/**",
+                                "/management/reports/**"
+                        ).hasAuthority("VIEW_REPORTS")
+
+                        // Role-level area boundaries
                         .requestMatchers("/student/**")
                         .hasRole("Student")
 
-                        // Support Staff
                         .requestMatchers("/staff/**")
                         .hasAnyRole(
                                 "Help Desk Support Staff",
                                 "Department Support Team Member"
                         )
 
-                        // Department Manager
                         .requestMatchers("/manager/**")
                         .hasRole("Department Manager")
 
-                        // System Administrator
                         .requestMatchers("/admin/**")
                         .hasRole("System Administrator")
 
-                        // University Management
                         .requestMatchers("/management/**")
                         .hasRole("University Management")
 
-                        // Other pages need authentication
+                        // Shared authenticated pages such as FAQ and notifications
                         .anyRequest()
                         .authenticated()
                 )
@@ -72,13 +128,8 @@ public class SecurityConfig {
                         .loginProcessingUrl("/login")
                         .usernameParameter("login")
                         .passwordParameter("password")
-
-                        // Successful login
                         .successHandler(successHandler)
-
-                        // Failed login
                         .failureHandler(failureHandler)
-
                         .permitAll()
                 )
 
@@ -94,7 +145,6 @@ public class SecurityConfig {
                         .permitAll()
                 )
 
-                // Secure session against session fixation
                 .sessionManagement(session ->
                         session.sessionFixation()
                                 .migrateSession()
