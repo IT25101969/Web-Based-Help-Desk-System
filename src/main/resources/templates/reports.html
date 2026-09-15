@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Help Desk Reports</title><link rel="stylesheet" th:href="@{/css/app.css}"></head>
+<body>
+<div class="topbar"><strong>Help Desk Reports</strong><div><a th:href="@{${basePath} + '/dashboard'}">Dashboard</a></div></div>
+<div class="container">
+<div class="card">
+<h1>Reports & Monitoring</h1>
+<form method="get" th:action="@{${basePath} + '/reports'}">
+<div class="grid grid-2">
+<label>Start date<input type="date" name="start" th:value="${start}"></label>
+<label>End date<input type="date" name="end" th:value="${end}"></label>
+<label>Department<select name="departmentId"><option value="">All departments</option><option th:each="d : ${departments}" th:value="${d.departmentId}" th:text="${d.departmentName}" th:selected="${selectedDepartmentId != null and selectedDepartmentId == d.departmentId}"></option></select></label>
+</div>
+<div class="actions"><button class="btn" type="submit">Apply Filters</button><a class="btn secondary" th:href="@{${basePath} + '/reports/export.csv'(start=${start},end=${end},departmentId=${selectedDepartmentId})}">Export CSV</a></div>
+</form>
+</div>
+<div class="grid grid-2">
+<div class="card"><h3>Total Tickets</h3><p th:text="${summary.totalTickets}"></p></div>
+<div class="card"><h3>Resolution Rate</h3><p th:text="${#numbers.formatDecimal(summary.resolutionRate,1,1) + '%'}"></p></div>
+<div class="card"><h3>Average Response</h3><p th:text="${#numbers.formatDecimal(summary.averageResponseHours,1,2) + ' hours'}"></p></div>
+<div class="card"><h3>Average Resolution</h3><p th:text="${#numbers.formatDecimal(summary.averageResolutionHours,1,2) + ' hours'}"></p></div>
+</div>
+<div class="card"><h2>Status Summary</h2><table><tr><th>New</th><th>Assigned</th><th>In Progress</th><th>Escalated</th><th>Resolved</th><th>Closed</th></tr><tr><td th:text="${summary.newTickets}"></td><td th:text="${summary.assignedTickets}"></td><td th:text="${summary.inProgressTickets}"></td><td th:text="${summary.escalatedTickets}"></td><td th:text="${summary.resolvedTickets}"></td><td th:text="${summary.closedTickets}"></td></tr></table></div>
+<div class="grid grid-2">
+<div class="card"><h2>Ticket Volume by Department</h2><table><tr th:each="entry : ${summary.departmentVolumes}"><td th:text="${entry.key}"></td><td th:text="${entry.value}"></td></tr><tr th:if="${#maps.isEmpty(summary.departmentVolumes)}"><td class="muted">No data for selected filters.</td></tr></table></div>
+<div class="card"><h2>Active Workload</h2><table><tr th:each="entry : ${summary.activeWorkloadByStaff}"><td th:text="${entry.key}"></td><td th:text="${entry.value}"></td></tr><tr th:if="${#maps.isEmpty(summary.activeWorkloadByStaff)}"><td class="muted">No active assignments.</td></tr></table></div>
+</div>
+</div>
+</body></html>
