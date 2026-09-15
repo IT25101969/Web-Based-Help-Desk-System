@@ -2,19 +2,54 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Help Desk Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - University Help Desk</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
 <body>
 
-<h1>University Help Desk Dashboard</h1>
+<header class="topbar">
+    <a th:href="@{/dashboard}" class="topbar-brand">
+        <strong>University</strong> <span>Help Desk</span>
+    </a>
+    <nav class="topbar-nav">
+        <a th:href="@{/dashboard}" class="active">Dashboard</a>
+        <a th:href="@{/faq}">FAQ</a>
+        <a th:href="@{/notifications}">Notifications</a>
+    </nav>
+    <div class="topbar-user">
+        <form th:action="@{/logout}" method="post" style="display:inline; margin:0;">
+            <button type="submit" class="btn-logout">Logout</button>
+        </form>
+    </div>
+</header>
 
-<p>Login successful.</p>
+<main class="container">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">University Help Desk</h1>
+            <p class="page-subtitle">Your session is active. Choose a destination below to proceed.</p>
+        </div>
+    </div>
 
-<p><a th:href="@{/notifications}">View Notifications</a></p>
-
-<form th:action="@{/logout}" method="post">
-    <button type="submit">Logout</button>
-</form>
+    <div class="grid grid-3">
+        <div class="card">
+            <h2 class="card-title">Notifications</h2>
+            <p class="muted">Check updates and status alerts regarding your support requests.</p>
+            <a th:href="@{/notifications}" class="btn btn-sm">View Notifications &rarr;</a>
+        </div>
+        <div class="card">
+            <h2 class="card-title">Knowledge Base</h2>
+            <p class="muted">Browse student guides, IT FAQs, and departmental contacts.</p>
+            <a th:href="@{/faq}" class="btn btn-sm secondary">Explore FAQs &rarr;</a>
+        </div>
+        <div class="card">
+            <h2 class="card-title">Submit Ticket</h2>
+            <p class="muted">Create an incident or service request ticket with our help desk.</p>
+            <a th:href="@{/student/tickets/new}" class="btn btn-sm secondary">New Ticket &rarr;</a>
+        </div>
+    </div>
+</main>
 
 </body>
 </html>

@@ -11,6 +11,7 @@ import com.university.helpdesk.repository.UserAccountRepository;
 import com.university.helpdesk.service.ActivityLogService;
 import com.university.helpdesk.service.ReportService;
 
+import org.springframework.security.access.AccessDeniedException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.*;
@@ -46,7 +47,7 @@ public class ReportController {
         this.activityLogService = activityLogService;
     }
 
-    @GetMapping({"/admin/reports", "/management/reports"})
+    @GetMapping({"/admin/reports", "/management/reports", "/reports"})
     public String reports(
             @RequestParam(value = "start", required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
@@ -57,6 +58,23 @@ public class ReportController {
             HttpServletRequest request,
             Model model
     ) {
+        String uri = request.getRequestURI();
+        if ("/reports".equals(uri)) {
+            boolean isAdmin = authentication != null && authentication.getAuthorities().stream()
+                    .anyMatch(a -> "ROLE_System Administrator".equals(a.getAuthority()));
+            boolean isMgmt = authentication != null && authentication.getAuthorities().stream()
+                    .anyMatch(a -> "ROLE_University Management".equals(a.getAuthority()));
+
+            String qs = request.getQueryString() != null ? "?" + request.getQueryString() : "";
+            if (isAdmin) {
+                return "redirect:/admin/reports" + qs;
+            } else if (isMgmt) {
+                return "redirect:/management/reports" + qs;
+            } else {
+                throw new AccessDeniedException("You do not have permission to access reports.");
+            }
+        }
+
         Optional<String> validationError = reportService.validateFilters(start, end, departmentId);
         ReportSummary summary;
         if (validationError.isPresent()) {
@@ -73,7 +91,7 @@ public class ReportController {
         model.addAttribute("selectedDepartmentId", departmentId);
         model.addAttribute(
                 "basePath",
-                request.getRequestURI().startsWith("/management/")
+                uri.startsWith("/management")
                         ? "/management"
                         : "/admin"
         );
@@ -83,8 +101,12 @@ public class ReportController {
     }
 
     @GetMapping({
+            "/admin/reports/export",
             "/admin/reports/export.csv",
-            "/management/reports/export.csv"
+            "/management/reports/export",
+            "/management/reports/export.csv",
+            "/reports/export",
+            "/reports/export.csv"
     })
     public ResponseEntity<String> export(
             @RequestParam(value = "start", required = false)
@@ -95,6 +117,16 @@ public class ReportController {
             Authentication authentication,
             HttpServletRequest request
     ) {
+        String uri = request.getRequestURI();
+        if (uri.startsWith("/reports/export")) {
+            boolean isAdmin = authentication != null && authentication.getAuthorities().stream()
+                    .anyMatch(a -> "ROLE_System Administrator".equals(a.getAuthority()));
+            boolean isMgmt = authentication != null && authentication.getAuthorities().stream()
+                    .anyMatch(a -> "ROLE_University Management".equals(a.getAuthority()));
+            if (!isAdmin && !isMgmt) {
+                throw new AccessDeniedException("You do not have permission to export reports.");
+            }
+        }
         Optional<String> validationError = reportService.validateFilters(start, end, departmentId);
         if (validationError.isPresent()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
