@@ -1,9 +1,12 @@
 package com.university.helpdesk.controller;
 
 import com.university.helpdesk.dto.ReportSummary;
+import com.university.helpdesk.entity.AssignmentStatus;
 import com.university.helpdesk.entity.Ticket;
+import com.university.helpdesk.entity.TicketAssignment;
 import com.university.helpdesk.entity.UserAccount;
 import com.university.helpdesk.repository.DepartmentRepository;
+import com.university.helpdesk.repository.TicketAssignmentRepository;
 import com.university.helpdesk.repository.UserAccountRepository;
 import com.university.helpdesk.service.ActivityLogService;
 import com.university.helpdesk.service.ReportService;
@@ -17,7 +20,8 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Controller
 public class ReportController {
@@ -25,17 +29,20 @@ public class ReportController {
     private final ReportService reportService;
     private final DepartmentRepository departmentRepository;
     private final UserAccountRepository userAccountRepository;
+    private final TicketAssignmentRepository assignmentRepository;
     private final ActivityLogService activityLogService;
 
     public ReportController(
             ReportService reportService,
             DepartmentRepository departmentRepository,
             UserAccountRepository userAccountRepository,
+            TicketAssignmentRepository assignmentRepository,
             ActivityLogService activityLogService
     ) {
         this.reportService = reportService;
         this.departmentRepository = departmentRepository;
         this.userAccountRepository = userAccountRepository;
+        this.assignmentRepository = assignmentRepository;
         this.activityLogService = activityLogService;
     }
 
@@ -50,7 +57,14 @@ public class ReportController {
             HttpServletRequest request,
             Model model
     ) {
-        ReportSummary summary = reportService.buildSummary(start, end, departmentId);
+        Optional<String> validationError = reportService.validateFilters(start, end, departmentId);
+        ReportSummary summary;
+        if (validationError.isPresent()) {
+            model.addAttribute("error", validationError.get());
+            summary = reportService.emptySummary();
+        } else {
+            summary = reportService.buildSummary(start, end, departmentId);
+        }
 
         model.addAttribute("summary", summary);
         model.addAttribute("departments", departmentRepository.findAll());
@@ -81,34 +95,65 @@ public class ReportController {
             Authentication authentication,
             HttpServletRequest request
     ) {
+        Optional<String> validationError = reportService.validateFilters(start, end, departmentId);
+        if (validationError.isPresent()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .contentType(MediaType.parseMediaType("text/plain; charset=UTF-8"))
+                    .body(validationError.get());
+        }
+
         List<Ticket> tickets =
                 reportService.filteredTickets(start, end, departmentId);
 
+        Set<Long> ticketIds = tickets.stream()
+                .map(Ticket::getTicketId)
+                .collect(Collectors.toSet());
+
+        Map<Long, String> assignedStaff = new HashMap<>();
+        if (!ticketIds.isEmpty()) {
+            List<TicketAssignment> assignments =
+                    assignmentRepository.findActiveAssignmentsForTicketIds(AssignmentStatus.ACTIVE, ticketIds);
+            for (TicketAssignment a : assignments) {
+                if (a.getAssignedToUser() != null && a.getTicket() != null) {
+                    UserAccount staff = a.getAssignedToUser();
+                    assignedStaff.put(
+                            a.getTicket().getTicketId(),
+                            staff.getFirstName() + " " + staff.getLastName() + " (" + staff.getUniversityId() + ")"
+                    );
+                }
+            }
+        }
+
         StringBuilder csv = new StringBuilder(
-                "Reference,Subject,Category,Department,Priority,Status,Created\n"
+                "Reference,Subject,Category,Department,Priority,Status,Created Date,Resolved Date,Assigned Staff\n"
         );
 
         for (Ticket ticket : tickets) {
+            String departmentName = (ticket.getCategory() == null || ticket.getCategory().getDepartment() == null)
+                    ? "Manual Routing"
+                    : ticket.getCategory().getDepartment().getDepartmentName();
+
+            String staffName = assignedStaff.getOrDefault(ticket.getTicketId(), "Unassigned");
+
             csv.append(csv(ticket.getReferenceNo())).append(',')
                     .append(csv(ticket.getSubject())).append(',')
-                    .append(csv(ticket.getCategory().getCategoryName())).append(',')
-                    .append(csv(ticket.getCategory().getDepartment() == null
-                            ? "Manual Routing"
-                            : ticket.getCategory().getDepartment().getDepartmentName()))
-                    .append(',')
+                    .append(csv(ticket.getCategory() != null ? ticket.getCategory().getCategoryName() : "")).append(',')
+                    .append(csv(departmentName)).append(',')
                     .append(ticket.getPriority()).append(',')
                     .append(ticket.getStatus()).append(',')
-                    .append(ticket.getCreatedDate())
+                    .append(ticket.getCreatedDate() != null ? ticket.getCreatedDate().toString() : "").append(',')
+                    .append(ticket.getResolvedDate() != null ? ticket.getResolvedDate().toString() : "").append(',')
+                    .append(csv(staffName))
                     .append('\n');
         }
 
         logReportAction(authentication, request, "REPORT_EXPORTED");
 
         return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType("text/csv"))
+                .contentType(MediaType.parseMediaType("text/csv; charset=UTF-8"))
                 .header(
                         HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=helpdesk-report.csv"
+                        "attachment; filename=\"helpdesk-report.csv\""
                 )
                 .body(csv.toString());
     }
@@ -135,7 +180,23 @@ public class ReportController {
 
     private String csv(String value) {
         if (value == null) return "";
-        String escaped = value.replace("\"", "\"\"");
+        String sanitized = value;
+        int firstNonBlank = -1;
+        for (int i = 0; i < sanitized.length(); i++) {
+            char c = sanitized.charAt(i);
+            if (c != ' ' && c != '\t') {
+                firstNonBlank = i;
+                break;
+            }
+        }
+        if (firstNonBlank != -1) {
+            char c = sanitized.charAt(firstNonBlank);
+            if (c == '=' || c == '+' || c == '-' || c == '@') {
+                sanitized = "'" + sanitized;
+            }
+        }
+        String escaped = sanitized.replace("\"", "\"\"");
         return "\"" + escaped + "\"";
     }
 }
+

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Activity Logs</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<div class="topbar">
+    <strong>Activity Logs</strong>
+    <div>
+        <a th:href="@{/admin/dashboard}">Dashboard</a>
+        <a th:href="@{/admin/reports}">Reports</a>
+        <a th:href="@{/admin/users}">Users</a>
+        <a th:href="@{/admin/monitoring}">Monitoring</a>
+        <a th:href="@{/admin/faqs}">FAQ Admin</a>
+    </div>
+</div>
+
+<div class="container">
+    <div th:if="${error}" class="alert error" th:text="${error}"></div>
+
+    <div class="card">
+        <h1>Audit &amp; Activity Logs</h1>
+        <form method="get" th:action="@{/admin/activity-logs}">
+            <div class="grid grid-2">
+                <label>Filter by Action
+                    <select name="action">
+                        <option value="">All Actions</option>
+                        <option th:each="a : ${actions}" th:value="${a}" th:text="${a}"
+                                th:selected="${selectedAction != null and selectedAction == a}">
+                        </option>
+                    </select>
+                </label>
+                <label>Search User (University ID or Name)
+                    <input name="search" th:value="${search}" placeholder="e.g. ADM001 or John">
+                </label>
+                <label>Start date
+                    <input type="date" name="start" th:value="${start}">
+                </label>
+                <label>End date
+                    <input type="date" name="end" th:value="${end}">
+                </label>
+            </div>
+            <div class="actions" style="margin-top: 14px;">
+                <button class="btn" type="submit">Filter Logs</button>
+                <a th:href="@{/admin/activity-logs}" class="btn secondary">Reset</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="card">
+        <h2>Logged Activity Events</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Actor</th>
+                    <th>Action</th>
+                    <th>Entity Type</th>
+                    <th>Entity ID</th>
+                    <th>IP Address</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="log : ${logs}">
+                    <td th:text="${#temporals.format(log.timestamp, 'yyyy-MM-dd HH:mm:ss')}"></td>
+                    <td>
+                        <span th:if="${log.user != null}" th:text="${log.user.universityId + ' (' + log.user.firstName + ' ' + log.user.lastName + ')'}"></span>
+                        <span th:if="${log.user == null}" class="muted">System / Anonymous</span>
+                    </td>
+                    <td>
+                        <span class="badge" th:text="${log.action}"></span>
+                    </td>
+                    <td th:text="${log.entityType != null ? log.entityType : '-'}"></td>
+                    <td th:text="${log.entityId != null ? log.entityId : '-'}"></td>
+                    <td th:text="${log.ipAddress != null ? log.ipAddress : '-'}"></td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(logs)}">
+                    <td colspan="6" class="muted">No activity logs found matching the selected criteria.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+</body>
+</html>

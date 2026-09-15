@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>System Monitoring</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<div class="topbar">
+    <strong>System Monitoring</strong>
+    <div>
+        <a th:href="@{/admin/dashboard}">Dashboard</a>
+        <a th:href="@{/admin/reports}">Reports</a>
+        <a th:href="@{/admin/users}">Users</a>
+        <a th:href="@{/admin/activity-logs}">Activity Logs</a>
+        <a th:href="@{/admin/faqs}">FAQ Admin</a>
+    </div>
+</div>
+
+<div class="container">
+    <h1>System Status &amp; Monitoring</h1>
+
+    <!-- User Account Health -->
+    <h2>User Accounts Health</h2>
+    <div class="grid grid-2">
+        <div class="card">
+            <h3>Total Users</h3>
+            <p style="font-size: 24px; font-weight: 700; margin: 4px 0;" th:text="${summary.totalUsers}"></p>
+        </div>
+        <div class="card">
+            <h3>Active Accounts</h3>
+            <p style="font-size: 24px; font-weight: 700; margin: 4px 0; color: #10b981;" th:text="${summary.activeUsers}"></p>
+        </div>
+        <div class="card">
+            <h3>Locked Accounts</h3>
+            <p style="font-size: 24px; font-weight: 700; margin: 4px 0; color: #ef4444;" th:text="${summary.lockedUsers}"></p>
+        </div>
+        <div class="card">
+            <h3>Disabled Accounts</h3>
+            <p style="font-size: 24px; font-weight: 700; margin: 4px 0; color: #6b7280;" th:text="${summary.disabledUsers}"></p>
+        </div>
+        <div class="card" style="grid-column: 1 / -1; border-left: 4px solid #ef4444;">
+            <h3>Suspicious Accounts (Locked or &ge; 3 Failed Logins)</h3>
+            <p style="font-size: 24px; font-weight: 700; margin: 4px 0; color: #b91c1c;" th:text="${summary.suspiciousUsers}"></p>
+            <p class="muted">Check <a th:href="@{/admin/users}">User Administration</a> to inspect and unlock flagged accounts.</p>
+        </div>
+    </div>
+
+    <!-- Ticket Status Overview -->
+    <h2>Ticket Queue Health</h2>
+    <div class="grid grid-2">
+        <div class="card">
+            <h3>Unresolved Tickets</h3>
+            <p style="font-size: 24px; font-weight: 700; margin: 4px 0; color: #2563eb;" th:text="${summary.unresolvedTickets}"></p>
+            <p class="muted">Active tickets needing support response or completion.</p>
+        </div>
+        <div class="card">
+            <h3>Escalated Tickets</h3>
+            <p style="font-size: 24px; font-weight: 700; margin: 4px 0; color: #ef4444;" th:text="${summary.escalatedTickets}"></p>
+            <p class="muted">Critical tickets requiring manager or tier-2 attention.</p>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Tickets by Status</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>New</th>
+                    <th>Assigned</th>
+                    <th>In Progress</th>
+                    <th>Escalated</th>
+                    <th>Resolved</th>
+                    <th>Closed</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td th:text="${summary.ticketStatusCounts[T(com.university.helpdesk.entity.TicketStatus).NEW]}"></td>
+                    <td th:text="${summary.ticketStatusCounts[T(com.university.helpdesk.entity.TicketStatus).ASSIGNED]}"></td>
+                    <td th:text="${summary.ticketStatusCounts[T(com.university.helpdesk.entity.TicketStatus).IN_PROGRESS]}"></td>
+                    <td th:text="${summary.ticketStatusCounts[T(com.university.helpdesk.entity.TicketStatus).ESCALATED]}"></td>
+                    <td th:text="${summary.ticketStatusCounts[T(com.university.helpdesk.entity.TicketStatus).RESOLVED]}"></td>
+                    <td th:text="${summary.ticketStatusCounts[T(com.university.helpdesk.entity.TicketStatus).CLOSED]}"></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Email Notification Queue Status -->
+    <h2>Outbound Email Queue Status</h2>
+    <div class="card">
+        <div th:if="${summary.pendingEmails != null}">
+            <div class="grid grid-2">
+                <div>
+                    <h3>Pending Outbound Delivery</h3>
+                    <p style="font-size: 24px; font-weight: 700; margin: 4px 0; color: #3b82f6;" th:text="${summary.pendingEmails}"></p>
+                </div>
+                <div>
+                    <h3>Failed Delivery Records</h3>
+                    <p style="font-size: 24px; font-weight: 700; margin: 4px 0; color: #ef4444;" th:text="${summary.failedEmails}"></p>
+                </div>
+            </div>
+        </div>
+        <div th:if="${summary.pendingEmails == null}">
+            <p class="muted">Email Notification Queue is not active or table is unavailable on this database branch.</p>
+        </div>
+    </div>
+
+    <!-- Recent Activity Logs Preview -->
+    <h2>Recent System Activity</h2>
+    <div class="card">
+        <table>
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Actor</th>
+                    <th>Action</th>
+                    <th>Entity Type</th>
+                    <th>Entity ID</th>
+                    <th>IP Address</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="log : ${summary.recentActivityLogs}">
+                    <td th:text="${#temporals.format(log.timestamp, 'yyyy-MM-dd HH:mm:ss')}"></td>
+                    <td>
+                        <span th:if="${log.user != null}" th:text="${log.user.universityId + ' (' + log.user.firstName + ' ' + log.user.lastName + ')'}"></span>
+                        <span th:if="${log.user == null}" class="muted">System / Anonymous</span>
+                    </td>
+                    <td><span class="badge" th:text="${log.action}"></span></td>
+                    <td th:text="${log.entityType != null ? log.entityType : '-'}"></td>
+                    <td th:text="${log.entityId != null ? log.entityId : '-'}"></td>
+                    <td th:text="${log.ipAddress != null ? log.ipAddress : '-'}"></td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(summary.recentActivityLogs)}">
+                    <td colspan="6" class="muted">No recent activity logged.</td>
+                </tr>
+            </tbody>
+        </table>
+        <div style="margin-top: 14px;">
+            <a th:href="@{/admin/activity-logs}" class="btn secondary">View Full Activity Logs</a>
+        </div>
+    </div>
+</div>
+</body>
+</html>

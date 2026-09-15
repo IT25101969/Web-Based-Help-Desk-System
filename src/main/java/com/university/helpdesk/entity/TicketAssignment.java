@@ -45,6 +45,7 @@ public class TicketAssignment {
     public UserAccount getAssignedByUser() { return assignedByUser; }
     public void setAssignedByUser(UserAccount assignedByUser) { this.assignedByUser = assignedByUser; }
     public LocalDateTime getAssignedDate() { return assignedDate; }
+    public void setAssignedDate(LocalDateTime assignedDate) { this.assignedDate = assignedDate; }
     public LocalDateTime getEndDate() { return endDate; }
     public void setEndDate(LocalDateTime endDate) { this.endDate = endDate; }
     public AssignmentStatus getStatus() { return status; }

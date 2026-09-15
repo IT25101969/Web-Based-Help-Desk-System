@@ -11,4 +11,18 @@ public interface TicketAssignmentRepository extends JpaRepository<TicketAssignme
     Optional<TicketAssignment> findFirstByTicketTicketIdAndStatusOrderByAssignedDateDesc(Long ticketId, AssignmentStatus status);
     List<TicketAssignment> findByTicketTicketIdOrderByAssignedDateDesc(Long ticketId);
     long countByAssignedToUserUserIdAndStatus(Long userId, AssignmentStatus status);
+
+    @org.springframework.data.jpa.repository.Query("SELECT a.ticket.ticketId, MIN(a.assignedDate) FROM TicketAssignment a " +
+            "WHERE a.ticket.ticketId IN :ticketIds GROUP BY a.ticket.ticketId")
+    List<Object[]> findFirstAssignmentDatesForTicketIds(
+            @org.springframework.data.repository.query.Param("ticketIds") java.util.Collection<Long> ticketIds
+    );
+
+    @org.springframework.data.jpa.repository.Query("SELECT a FROM TicketAssignment a JOIN FETCH a.assignedToUser u " +
+            "WHERE a.status = :status AND a.ticket.ticketId IN :ticketIds")
+    List<TicketAssignment> findActiveAssignmentsForTicketIds(
+            @org.springframework.data.repository.query.Param("status") AssignmentStatus status,
+            @org.springframework.data.repository.query.Param("ticketIds") java.util.Collection<Long> ticketIds
+    );
 }
+

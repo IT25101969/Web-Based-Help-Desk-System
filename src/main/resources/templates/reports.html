@@ -1,30 +1,251 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Help Desk Reports</title><link rel="stylesheet" th:href="@{/css/app.css}"></head>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Help Desk Reports</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
 <body>
-<div class="topbar"><strong>Help Desk Reports</strong><div><a th:href="@{${basePath} + '/dashboard'}">Dashboard</a></div></div>
+<div class="topbar">
+    <strong>Help Desk Reports</strong>
+    <div>
+        <a th:href="@{${basePath} + '/dashboard'}">Dashboard</a>
+    </div>
+</div>
+
 <div class="container">
-<div class="card">
-<h1>Reports & Monitoring</h1>
-<form method="get" th:action="@{${basePath} + '/reports'}">
-<div class="grid grid-2">
-<label>Start date<input type="date" name="start" th:value="${start}"></label>
-<label>End date<input type="date" name="end" th:value="${end}"></label>
-<label>Department<select name="departmentId"><option value="">All departments</option><option th:each="d : ${departments}" th:value="${d.departmentId}" th:text="${d.departmentName}" th:selected="${selectedDepartmentId != null and selectedDepartmentId == d.departmentId}"></option></select></label>
+    <div th:if="${error}" class="alert error" th:text="${error}"></div>
+
+    <div class="card">
+        <h1>Reports &amp; Monitoring</h1>
+        <form method="get" th:action="@{${basePath} + '/reports'}">
+            <div class="grid grid-2">
+                <label>Start date
+                    <input type="date" name="start" th:value="${start}">
+                </label>
+                <label>End date
+                    <input type="date" name="end" th:value="${end}">
+                </label>
+                <label>Department
+                    <select name="departmentId">
+                        <option value="">All departments</option>
+                        <option th:each="d : ${departments}"
+                                th:value="${d.departmentId}"
+                                th:text="${d.departmentName}"
+                                th:selected="${selectedDepartmentId != null and selectedDepartmentId == d.departmentId}">
+                        </option>
+                    </select>
+                </label>
+            </div>
+            <div class="actions" style="margin-top: 14px;">
+                <button class="btn" type="submit">Apply Filters</button>
+                <a class="btn secondary"
+                   th:href="@{${basePath} + '/reports/export.csv'(start=${start},end=${end},departmentId=${selectedDepartmentId})}">
+                    Export CSV
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <div class="grid grid-2">
+        <div class="card">
+            <h3>Total Tickets</h3>
+            <p style="font-size: 24px; font-weight: 700; margin: 4px 0;" th:text="${summary.totalTickets}"></p>
+        </div>
+        <div class="card">
+            <h3>Resolution Rate</h3>
+            <p style="font-size: 24px; font-weight: 700; margin: 4px 0;"
+               th:text="${#numbers.formatDecimal(summary.resolutionRate,1,1) + '%'}"></p>
+        </div>
+        <div class="card">
+            <h3>Average Response</h3>
+            <p style="font-size: 24px; font-weight: 700; margin: 4px 0;"
+               th:text="${#numbers.formatDecimal(summary.averageResponseHours,1,2) + ' hours'}"></p>
+        </div>
+        <div class="card">
+            <h3>Average Resolution</h3>
+            <p style="font-size: 24px; font-weight: 700; margin: 4px 0;"
+               th:text="${#numbers.formatDecimal(summary.averageResolutionHours,1,2) + ' hours'}"></p>
+        </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="grid grid-2" id="chartsContainer" th:if="${summary.totalTickets > 0}">
+        <div class="card">
+            <h2>Status Distribution</h2>
+            <div style="max-height: 280px; display: flex; justify-content: center;">
+                <canvas id="statusChart"></canvas>
+            </div>
+        </div>
+        <div class="card">
+            <h2>Ticket Volume by Department</h2>
+            <div style="max-height: 280px;">
+                <canvas id="deptChart"></canvas>
+            </div>
+        </div>
+        <div class="card" style="grid-column: 1 / -1;" th:if="${not #maps.isEmpty(summary.activeWorkloadByStaff)}">
+            <h2>Active Staff Workload</h2>
+            <div style="max-height: 280px;">
+                <canvas id="workloadChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tables Section -->
+    <div class="card">
+        <h2>Status Summary</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>New</th>
+                    <th>Assigned</th>
+                    <th>In Progress</th>
+                    <th>Escalated</th>
+                    <th>Resolved</th>
+                    <th>Closed</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td th:text="${summary.newTickets}"></td>
+                    <td th:text="${summary.assignedTickets}"></td>
+                    <td th:text="${summary.inProgressTickets}"></td>
+                    <td th:text="${summary.escalatedTickets}"></td>
+                    <td th:text="${summary.resolvedTickets}"></td>
+                    <td th:text="${summary.closedTickets}"></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="grid grid-2">
+        <div class="card">
+            <h2>Ticket Volume by Department</h2>
+            <table>
+                <thead>
+                    <tr><th>Department</th><th>Volume</th></tr>
+                </thead>
+                <tbody>
+                    <tr th:each="entry : ${summary.departmentVolumes}">
+                        <td th:text="${entry.key}"></td>
+                        <td th:text="${entry.value}"></td>
+                    </tr>
+                    <tr th:if="${#maps.isEmpty(summary.departmentVolumes)}">
+                        <td colspan="2" class="muted">No data for selected filters.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h2>Active Workload</h2>
+            <table>
+                <thead>
+                    <tr><th>Staff Member</th><th>Active Tickets</th></tr>
+                </thead>
+                <tbody>
+                    <tr th:each="entry : ${summary.activeWorkloadByStaff}">
+                        <td th:text="${entry.key}"></td>
+                        <td th:text="${entry.value}"></td>
+                    </tr>
+                    <tr th:if="${#maps.isEmpty(summary.activeWorkloadByStaff)}">
+                        <td colspan="2" class="muted">No active assignments.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
-<div class="actions"><button class="btn" type="submit">Apply Filters</button><a class="btn secondary" th:href="@{${basePath} + '/reports/export.csv'(start=${start},end=${end},departmentId=${selectedDepartmentId})}">Export CSV</a></div>
-</form>
-</div>
-<div class="grid grid-2">
-<div class="card"><h3>Total Tickets</h3><p th:text="${summary.totalTickets}"></p></div>
-<div class="card"><h3>Resolution Rate</h3><p th:text="${#numbers.formatDecimal(summary.resolutionRate,1,1) + '%'}"></p></div>
-<div class="card"><h3>Average Response</h3><p th:text="${#numbers.formatDecimal(summary.averageResponseHours,1,2) + ' hours'}"></p></div>
-<div class="card"><h3>Average Resolution</h3><p th:text="${#numbers.formatDecimal(summary.averageResolutionHours,1,2) + ' hours'}"></p></div>
-</div>
-<div class="card"><h2>Status Summary</h2><table><tr><th>New</th><th>Assigned</th><th>In Progress</th><th>Escalated</th><th>Resolved</th><th>Closed</th></tr><tr><td th:text="${summary.newTickets}"></td><td th:text="${summary.assignedTickets}"></td><td th:text="${summary.inProgressTickets}"></td><td th:text="${summary.escalatedTickets}"></td><td th:text="${summary.resolvedTickets}"></td><td th:text="${summary.closedTickets}"></td></tr></table></div>
-<div class="grid grid-2">
-<div class="card"><h2>Ticket Volume by Department</h2><table><tr th:each="entry : ${summary.departmentVolumes}"><td th:text="${entry.key}"></td><td th:text="${entry.value}"></td></tr><tr th:if="${#maps.isEmpty(summary.departmentVolumes)}"><td class="muted">No data for selected filters.</td></tr></table></div>
-<div class="card"><h2>Active Workload</h2><table><tr th:each="entry : ${summary.activeWorkloadByStaff}"><td th:text="${entry.key}"></td><td th:text="${entry.value}"></td></tr><tr th:if="${#maps.isEmpty(summary.activeWorkloadByStaff)}"><td class="muted">No active assignments.</td></tr></table></div>
-</div>
-</div>
-</body></html>
+
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    document.addEventListener("DOMContentLoaded", function () {
+        if (typeof Chart === "undefined") {
+            return;
+        }
+
+        try {
+            var newTickets = /*[[${summary.newTickets}]]*/ 0;
+            var assignedTickets = /*[[${summary.assignedTickets}]]*/ 0;
+            var inProgressTickets = /*[[${summary.inProgressTickets}]]*/ 0;
+            var escalatedTickets = /*[[${summary.escalatedTickets}]]*/ 0;
+            var resolvedTickets = /*[[${summary.resolvedTickets}]]*/ 0;
+            var closedTickets = /*[[${summary.closedTickets}]]*/ 0;
+            var totalTickets = /*[[${summary.totalTickets}]]*/ 0;
+
+            if (totalTickets > 0 && document.getElementById('statusChart')) {
+                new Chart(document.getElementById('statusChart').getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['New', 'Assigned', 'In Progress', 'Escalated', 'Resolved', 'Closed'],
+                        datasets: [{
+                            data: [newTickets, assignedTickets, inProgressTickets, escalatedTickets, resolvedTickets, closedTickets],
+                            backgroundColor: ['#3b82f6', '#0ea5e9', '#eab308', '#ef4444', '#10b981', '#6b7280']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false
+                    }
+                });
+            }
+
+            var deptMap = /*[[${summary.departmentVolumes}]]*/ {};
+            var deptLabels = Object.keys(deptMap || {});
+            var deptValues = Object.values(deptMap || {});
+
+            if (deptLabels.length > 0 && document.getElementById('deptChart')) {
+                new Chart(document.getElementById('deptChart').getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: deptLabels,
+                        datasets: [{
+                            label: 'Tickets',
+                            data: deptValues,
+                            backgroundColor: '#2563eb'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: { beginAtZero: true, ticks: { precision: 0 } }
+                        }
+                    }
+                });
+            }
+
+            var workloadMap = /*[[${summary.activeWorkloadByStaff}]]*/ {};
+            var workloadLabels = Object.keys(workloadMap || {});
+            var workloadValues = Object.values(workloadMap || {});
+
+            if (workloadLabels.length > 0 && document.getElementById('workloadChart')) {
+                new Chart(document.getElementById('workloadChart').getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: workloadLabels,
+                        datasets: [{
+                            label: 'Active Assigned Tickets',
+                            data: workloadValues,
+                            backgroundColor: '#8b5cf6'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: { beginAtZero: true, ticks: { precision: 0 } }
+                        }
+                    }
+                });
+            }
+        } catch (err) {
+            console.warn("Chart rendering failed:", err);
+        }
+    });
+    /*]]>*/
+</script>
+</body>
+</html>

@@ -19,4 +19,13 @@ public interface UserAccountRepository extends JpaRepository<UserAccount, Long> 
     boolean existsByUniversityId(String universityId);
 
     boolean existsByEmail(String email);
+
+    long countByAccountStatus(com.university.helpdesk.entity.AccountStatus accountStatus);
+
+    long countByFailedLoginAttemptsGreaterThanEqual(int attempts);
+
+    long countByAccountStatusOrFailedLoginAttemptsGreaterThanEqual(
+            com.university.helpdesk.entity.AccountStatus status,
+            int attempts
+    );
 }

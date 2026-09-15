@@ -161,6 +161,11 @@ public class SecurityConfig {
                                 "hasRole('System Administrator') and hasAuthority('VIEW_REPORTS')"
                         ))
 
+                        .requestMatchers("/admin/monitoring/**", "/admin/activity-logs/**")
+                        .access(new WebExpressionAuthorizationManager(
+                                "hasRole('System Administrator') and hasAuthority('MANAGE_SYSTEM')"
+                        ))
+
                         .requestMatchers("/management/reports/**")
                         .access(new WebExpressionAuthorizationManager(
                                 "hasRole('University Management') and hasAuthority('VIEW_REPORTS')"
