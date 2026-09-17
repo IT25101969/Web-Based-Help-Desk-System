@@ -44,7 +44,7 @@ public class FeedbackService {
                 .orElseThrow(() -> new IllegalArgumentException("User was not found."));
 
         if (!ticket.getStudent().getUserId().equals(student.getUserId())) {
-            throw new SecurityException("You cannot submit feedback for this ticket.");
+            throw new org.springframework.security.access.AccessDeniedException("You cannot submit feedback for this ticket.");
         }
 
         if (ticket.getStatus() != TicketStatus.RESOLVED &&

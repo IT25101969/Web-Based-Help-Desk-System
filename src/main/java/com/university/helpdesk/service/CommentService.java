@@ -20,6 +20,8 @@ public class CommentService {
     private final NotificationService notificationService;
     private final TicketAssignmentRepository assignmentRepository;
     private final TicketService ticketService;
+    private final ActivityLogService activityLogService;
+    private final com.university.helpdesk.repository.UserRoleRepository userRoleRepository;
 
     public CommentService(
             UserCommentRepository commentRepository,
@@ -27,7 +29,9 @@ public class CommentService {
             TicketRepository ticketRepository,
             NotificationService notificationService,
             TicketAssignmentRepository assignmentRepository,
-            TicketService ticketService
+            TicketService ticketService,
+            com.university.helpdesk.repository.UserRoleRepository userRoleRepository,
+            ActivityLogService activityLogService
     ) {
         this.commentRepository = commentRepository;
         this.userAccountRepository = userAccountRepository;
@@ -35,6 +39,8 @@ public class CommentService {
         this.notificationService = notificationService;
         this.assignmentRepository = assignmentRepository;
         this.ticketService = ticketService;
+        this.userRoleRepository = userRoleRepository;
+        this.activityLogService = activityLogService;
     }
 
     @Transactional
@@ -72,6 +78,7 @@ public class CommentService {
         comment.setCommentText(text.trim());
         comment.setCommentType(type == null ? CommentType.PUBLIC : type);
         comment = commentRepository.save(comment);
+        activityLogService.log(user, "COMMENT_ADDED_" + comment.getCommentType(), "TICKET", ticketId, null);
 
         if (comment.getCommentType() == CommentType.PUBLIC) {
             if (!isStudentOwner) {
@@ -108,5 +115,31 @@ public class CommentService {
     @Transactional(readOnly = true)
     public List<UserComment> getComments(Long ticketId) {
         return commentRepository.findByTicketTicketIdOrderByCreatedDateAsc(ticketId);
+    }
+
+    @Transactional
+    public void deleteComment(Long commentId, Long ticketId, String username) {
+        ticketService.getAuthorizedSupportTicket(ticketId, username);
+        UserComment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new IllegalArgumentException("Comment was not found."));
+
+        if (!comment.getTicket().getTicketId().equals(ticketId)) {
+            throw new IllegalArgumentException("Comment does not belong to this ticket.");
+        }
+
+        UserAccount user = userAccountRepository.findByUniversityId(username)
+                .orElseThrow(() -> new IllegalArgumentException("User was not found."));
+
+        boolean isAuthor = comment.getUser().getUserId().equals(user.getUserId());
+        boolean isPrivileged = userRoleRepository.findByUserUserIdAndActiveTrue(user.getUserId()).stream()
+                .anyMatch(r -> "System Administrator".equals(r.getRole().getRoleName()) ||
+                               "Department Manager".equals(r.getRole().getRoleName()));
+
+        if (!isAuthor && !isPrivileged) {
+            throw new AccessDeniedException("You are not authorized to delete this comment.");
+        }
+
+        commentRepository.delete(comment);
+        activityLogService.log(user, "COMMENT_DELETED", "TICKET", ticketId, null);
     }
 }

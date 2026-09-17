@@ -141,10 +141,15 @@
             </p>
         </div>
 
-        <div class="actions">
+        <div class="actions" style="display:flex; gap:8px; align-items:center;">
             <a th:href="@{/notifications/preferences}" class="btn secondary" style="font-size:13px;">Notification Preferences</a>
-            <form th:if="${unreadCount > 0}" th:action="@{/notifications/read-all}" method="post" style="display:inline;">
+            <form th:if="${unreadCount > 0}" th:action="@{/notifications/read-all}" method="post" style="display:inline; margin:0;">
                 <button type="submit" class="btn secondary" style="font-size:13px;">Mark All as Read</button>
+            </form>
+            <form th:if="${!#lists.isEmpty(notifications)}" th:action="@{/notifications/clear-all}" method="post" style="display:inline; margin:0;">
+                <button type="submit" class="btn danger" style="font-size:13px;" onclick="return confirm('Are you sure you want to delete all notifications?');">
+                    Clear All
+                </button>
             </form>
         </div>
     </div>
@@ -199,17 +204,23 @@
                 <span th:if="${n.ticket == null}" class="muted" style="font-size:12px;">General Alert</span>
             </div>
 
-            <div class="actions">
+            <div class="actions" style="display:flex; align-items:center; gap:8px;">
                 <form th:if="${!n.readStatus}"
                       th:action="@{/notifications/{id}/read(id=${n.notificationId})}"
-                      method="post" style="display:inline;">
-                    <button type="submit" class="btn secondary" style="padding:6px 12px; font-size:12px;">
+                      method="post" style="display:inline; margin:0;">
+                    <button type="submit" class="btn secondary" style="padding:4px 10px; font-size:12px;">
                         Mark as Read
                     </button>
                 </form>
                 <span th:if="${n.readStatus}" class="muted" style="font-size:12px;">
                     Read <span th:if="${n.readDate != null}" th:text="${#temporals.format(n.readDate, 'yyyy-MM-dd HH:mm')}"></span>
                 </span>
+                <form th:action="@{/notifications/{id}/delete(id=${n.notificationId})}"
+                      method="post" style="display:inline; margin:0;">
+                    <button type="submit" class="btn danger" style="padding:4px 10px; font-size:12px;" onclick="return confirm('Delete this notification?');">
+                        Delete
+                    </button>
+                </form>
             </div>
         </div>
 

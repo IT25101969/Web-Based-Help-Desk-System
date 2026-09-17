@@ -27,7 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @Transactional
-class FaqSecurityWebMvcTests {
+class FaqSecurityWebMvcTests extends com.university.helpdesk.TestAccounts {
 
     @Autowired
     private WebApplicationContext context;

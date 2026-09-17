@@ -102,7 +102,7 @@
     </div>
 
     <div class="result-meta" th:if="${!#lists.isEmpty(faqs)}">
-        <span th:text="'Showing ' + ${#lists.size(faqs)} + ' published solution' + (${#lists.size(faqs)} == 1 ? '' : 's') + (selectedCategory != null ? ' in ' + selectedCategory.categoryName : '')"></span>
+        <span th:text="${'Showing ' + #lists.size(faqs) + ' published solution' + (#lists.size(faqs) == 1 ? '' : 's') + (selectedCategory != null ? ' in ' + selectedCategory.categoryName : '')}"></span>
         <a class="btn secondary" style="font-size: 13px; padding: 6px 12px;" th:href="@{/student/tickets/new(categoryId=${activeCategoryForTicket})}">Still Need Help?</a>
     </div>
 

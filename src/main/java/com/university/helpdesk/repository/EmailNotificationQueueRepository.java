@@ -25,4 +25,20 @@ public interface EmailNotificationQueueRepository extends JpaRepository<EmailNot
     List<EmailNotificationQueue> findByUserUserIdOrderByCreatedAtDesc(Long userId);
 
     List<EmailNotificationQueue> findByTicketTicketIdOrderByCreatedAtDesc(Long ticketId);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("UPDATE EmailNotificationQueue q SET q.notification = null WHERE q.notification.notificationId = :notificationId")
+    void disassociateNotification(@Param("notificationId") Long notificationId);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("UPDATE EmailNotificationQueue q SET q.notification = null WHERE q.user.userId = :userId")
+    void disassociateAllNotificationsForUser(@Param("userId") Long userId);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("UPDATE EmailNotificationQueue q SET q.notification = null WHERE q.notification.ticket.ticketId = :ticketId OR q.ticket.ticketId = :ticketId")
+    void disassociateNotificationByTicketId(@Param("ticketId") Long ticketId);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("DELETE FROM EmailNotificationQueue q WHERE q.ticket.ticketId = :ticketId")
+    void deleteByTicketTicketId(@Param("ticketId") Long ticketId);
 }

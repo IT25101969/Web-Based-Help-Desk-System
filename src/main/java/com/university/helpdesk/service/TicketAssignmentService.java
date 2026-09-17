@@ -22,6 +22,7 @@ public class TicketAssignmentService {
     private final TicketAssignmentRepository assignmentRepository;
     private final TicketStatusHistoryRepository historyRepository;
     private final NotificationService notificationService;
+    private final ActivityLogService activityLogService;
 
     public TicketAssignmentService(
             TicketRepository ticketRepository,
@@ -30,7 +31,8 @@ public class TicketAssignmentService {
             UserRoleRepository userRoleRepository,
             TicketAssignmentRepository assignmentRepository,
             TicketStatusHistoryRepository historyRepository,
-            NotificationService notificationService
+            NotificationService notificationService,
+            ActivityLogService activityLogService
     ) {
         this.ticketRepository = ticketRepository;
         this.userAccountRepository = userAccountRepository;
@@ -39,6 +41,7 @@ public class TicketAssignmentService {
         this.assignmentRepository = assignmentRepository;
         this.historyRepository = historyRepository;
         this.notificationService = notificationService;
+        this.activityLogService = activityLogService;
     }
 
     @Transactional(readOnly = true)
@@ -209,6 +212,7 @@ public class TicketAssignmentService {
             ticket.setPriority(priority);
         }
         ticket.setStatus(TicketStatus.ASSIGNED);
+        ticket.setResolvedDate(null);
         ticketRepository.save(ticket);
 
         TicketAssignment assignment = new TicketAssignment();
@@ -259,12 +263,65 @@ public class TicketAssignmentService {
             );
         }
 
+        activityLogService.log(assignedBy, "TICKET_ASSIGNED", "TICKET", ticketId, null);
         return assignment;
     }
 
     @Transactional(readOnly = true)
     public List<TicketAssignment> getHistory(Long ticketId) {
         return assignmentRepository.findByTicketTicketIdOrderByAssignedDateDesc(ticketId);
+    }
+
+    @Transactional
+    public void unassign(Long ticketId, String username) {
+        Ticket ticket = ticketRepository.findByIdWithLock(ticketId)
+                .orElseThrow(() -> new IllegalArgumentException("Ticket was not found."));
+
+        UserAccount actor = userAccountRepository.findByUniversityId(username)
+                .orElseThrow(() -> new IllegalArgumentException("User was not found."));
+
+        List<String> actorRoles = userRoleRepository.findByUserUserIdAndActiveTrue(actor.getUserId())
+                .stream().map(role -> role.getRole().getRoleName()).toList();
+        boolean admin = actorRoles.contains("System Administrator");
+        boolean assigner = admin || actorRoles.contains("Department Manager")
+                || actorRoles.contains("Help Desk Support Staff");
+        Department department = ticket.getCategory() == null ? null : ticket.getCategory().getDepartment();
+        if (actor.getAccountStatus() != AccountStatus.ACTIVE || !assigner || (!admin &&
+                (department == null || !userDepartmentRepository
+                        .existsByUserUserIdAndDepartmentDepartmentIdAndActiveTrue(actor.getUserId(), department.getDepartmentId())))) {
+            throw new org.springframework.security.access.AccessDeniedException("You cannot unassign tickets in this department.");
+        }
+        if (ticket.getStatus() == TicketStatus.CLOSED) {
+            throw new IllegalArgumentException("Cannot change a closed ticket assignment.");
+        }
+
+        Optional<TicketAssignment> activeOpt = assignmentRepository
+                .findFirstByTicketTicketIdAndStatusOrderByAssignedDateDesc(ticketId, AssignmentStatus.ACTIVE);
+
+        if (activeOpt.isEmpty()) {
+            throw new IllegalStateException("No active assignment found to remove.");
+        }
+
+        TicketAssignment active = activeOpt.get();
+        active.setStatus(AssignmentStatus.CANCELLED);
+        active.setEndDate(LocalDateTime.now());
+        assignmentRepository.save(active);
+        activityLogService.log(actor, "TICKET_UNASSIGNED", "TICKET", ticketId, null);
+
+        TicketStatusHistory history = new TicketStatusHistory();
+        history.setTicket(ticket);
+        history.setOldStatus(ticket.getStatus());
+        history.setNewStatus(ticket.getStatus());
+        history.setChangedByUser(actor);
+        history.setReason("Assignment to " + active.getAssignedToUser().getFirstName() + " " + active.getAssignedToUser().getLastName() + " was removed.");
+        historyRepository.save(history);
+
+        notificationService.notifyUser(
+                active.getAssignedToUser(),
+                ticket,
+                NotificationType.UPDATED,
+                "Your assignment on ticket " + ticket.getReferenceNo() + " was revoked."
+        );
     }
 
     private boolean isSupportUser(Long userId) {

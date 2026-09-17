@@ -368,5 +368,61 @@ public class AdminUserController {
 
         return "redirect:/admin/users";
     }
+
+    @PostMapping("/{userId}/delete")
+    public String delete(
+            @PathVariable Long userId,
+            Authentication authentication,
+            HttpServletRequest request,
+            RedirectAttributes redirectAttributes
+    ) {
+        try {
+            UserAccount targetUser = userAccountRepository.findById(userId)
+                    .orElseThrow(() -> new IllegalArgumentException("User was not found."));
+
+            UserAccount actor = userAccountRepository
+                    .findByUniversityId(authentication.getName())
+                    .orElseThrow(() -> new IllegalArgumentException("Authenticated user not found."));
+
+            if (actor.getUserId().equals(targetUser.getUserId())) {
+                throw new IllegalArgumentException("Administrators cannot delete their own account.");
+            }
+
+            long otherUsableAdmins = userRoleRepository.countActiveUsersWithRoleExcludingUser(
+                    "System Administrator",
+                    AccountStatus.ACTIVE,
+                    targetUser.getUserId()
+            );
+            boolean isTargetAdmin = userRoleRepository.findByUserUserIdAndActiveTrue(targetUser.getUserId())
+                    .stream().anyMatch(r -> "System Administrator".equals(r.getRole().getRoleName()));
+
+            if (isTargetAdmin && otherUsableAdmins < 1) {
+                throw new IllegalArgumentException("Cannot delete the last usable System Administrator account.");
+            }
+
+            targetUser.setAccountStatus(AccountStatus.DISABLED);
+            userAccountRepository.save(targetUser);
+
+            List<UserRole> roles = userRoleRepository.findByUserUserId(userId);
+            for (UserRole r : roles) {
+                r.setActive(false);
+                userRoleRepository.save(r);
+            }
+
+            activityLogService.log(
+                    actor,
+                    "USER_DELETED",
+                    "USER_ACCOUNT",
+                    userId,
+                    request.getRemoteAddr()
+            );
+
+            redirectAttributes.addFlashAttribute("success", "User account " + targetUser.getUniversityId() + " deactivated / deleted successfully.");
+        } catch (RuntimeException ex) {
+            redirectAttributes.addFlashAttribute("error", ex.getMessage());
+        }
+
+        return "redirect:/admin/users";
+    }
 }
 

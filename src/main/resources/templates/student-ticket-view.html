@@ -59,6 +59,14 @@
                       th:text="${ticket.priority}">MEDIUM</span>
                 <span th:class="'badge badge-status-' + ${#strings.replace(#strings.toLowerCase(ticket.status),'_','-')}"
                       th:text="${ticket.status}">NEW</span>
+                <form th:if="${ticket.status.name() == 'NEW' or ticket.status.name() == 'OPEN'}"
+                      th:action="@{/student/tickets/{id}/delete(id=${ticket.ticketId})}"
+                      method="post" style="display:inline; margin:0;">
+                    <button type="submit" class="btn btn-sm danger" style="padding: 4px 10px; font-size: 12px;"
+                            onclick="return confirm('Are you sure you want to delete this ticket? This action cannot be undone.');">
+                        Delete Ticket
+                    </button>
+                </form>
             </div>
         </div>
 
@@ -155,14 +163,21 @@
                 <h2 class="card-title">Attachments</h2>
             </div>
             <div th:if="${!#lists.isEmpty(attachments)}">
-                <div th:each="item : ${attachments}">
+                <div th:each="item : ${attachments}" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
                     <a th:href="@{/student/tickets/{tid}/attachments/{aid}(tid=${ticket.ticketId},aid=${item.attachmentId})}"
-                       class="attachment-pill">
+                       class="attachment-pill" style="flex-grow: 1; margin: 0;">
                         <span>📄</span>
                         <span th:text="${item.fileName}" style="font-weight: 600;">document.pdf</span>
                         <span class="file-size-tag" th:text="${(item.fileSize / 1024) + ' KB'}">120 KB</span>
                         <span style="color: var(--primary); font-size: 0.8rem; font-weight: 700;">Download ↓</span>
                     </a>
+                    <form th:action="@{/student/tickets/{tid}/attachments/{aid}/delete(tid=${ticket.ticketId},aid=${item.attachmentId})}"
+                          method="post" style="display:inline; margin-left: 8px;">
+                        <button type="submit" class="btn btn-sm danger" style="padding: 4px 8px; font-size: 11px;"
+                                onclick="return confirm('Are you sure you want to delete this attachment?');" title="Remove attachment">
+                            Delete
+                        </button>
+                    </form>
                 </div>
             </div>
             <div th:if="${#lists.isEmpty(attachments)}" class="empty-state" style="padding: 24px;">

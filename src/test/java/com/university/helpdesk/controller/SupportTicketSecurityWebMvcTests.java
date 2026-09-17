@@ -35,6 +35,15 @@ public class SupportTicketSecurityWebMvcTests {
 
     private MockMvc mockMvc;
 
+    @Test
+    void unassignCannotCrossDepartmentBoundary() throws Exception {
+        mockMvc.perform(post("/staff/tickets/" + finTicket.getTicketId() + "/unassign")
+                .with(user(itStaffAccount.getUniversityId()).authorities(
+                        new SimpleGrantedAuthority("ROLE_Help Desk Support Staff"),
+                        new SimpleGrantedAuthority("ASSIGN_TICKET"))).with(csrf()))
+                .andExpect(status().isForbidden());
+    }
+
     @Autowired
     private TicketRepository ticketRepository;
 

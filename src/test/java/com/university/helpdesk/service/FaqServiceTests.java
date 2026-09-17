@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @Transactional
-class FaqServiceTests {
+class FaqServiceTests extends com.university.helpdesk.TestAccounts {
 
     @Autowired
     private FaqService faqService;

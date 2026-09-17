@@ -267,6 +267,53 @@ public class SupportTicketController {
         return "redirect:" + basePath(request) + "/tickets/" + ticketId;
     }
 
+    @PostMapping({
+            "/staff/tickets/{ticketId}/comments/{commentId}/delete",
+            "/manager/tickets/{ticketId}/comments/{commentId}/delete",
+            "/admin/tickets/{ticketId}/comments/{commentId}/delete"
+    })
+    public String deleteComment(
+            @PathVariable Long ticketId,
+            @PathVariable Long commentId,
+            Authentication authentication,
+            HttpServletRequest request,
+            RedirectAttributes redirectAttributes
+    ) {
+        try {
+            commentService.deleteComment(commentId, ticketId, authentication.getName());
+            redirectAttributes.addFlashAttribute("success", "Comment deleted successfully.");
+        } catch (AccessDeniedException ex) {
+            throw ex;
+        } catch (RuntimeException ex) {
+            redirectAttributes.addFlashAttribute("error", ex.getMessage());
+        }
+
+        return "redirect:" + basePath(request) + "/tickets/" + ticketId;
+    }
+
+    @PostMapping({
+            "/staff/tickets/{ticketId}/unassign",
+            "/manager/tickets/{ticketId}/unassign",
+            "/admin/tickets/{ticketId}/unassign"
+    })
+    public String unassign(
+            @PathVariable Long ticketId,
+            Authentication authentication,
+            HttpServletRequest request,
+            RedirectAttributes redirectAttributes
+    ) {
+        try {
+            assignmentService.unassign(ticketId, authentication.getName());
+            redirectAttributes.addFlashAttribute("success", "Assignment removed successfully.");
+        } catch (AccessDeniedException ex) {
+            throw ex;
+        } catch (RuntimeException ex) {
+            redirectAttributes.addFlashAttribute("error", ex.getMessage());
+        }
+
+        return "redirect:" + basePath(request) + "/tickets/" + ticketId;
+    }
+
     @GetMapping({
             "/staff/tickets/{ticketId}/attachments/{attachmentId}",
             "/manager/tickets/{ticketId}/attachments/{attachmentId}",

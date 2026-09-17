@@ -4,6 +4,7 @@ import com.university.helpdesk.entity.*;
 import com.university.helpdesk.repository.*;
 
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -11,6 +12,7 @@ import org.springframework.core.annotation.Order;
 import java.util.List;
 
 @Configuration
+@ConditionalOnProperty(name = "app.seed.demo", havingValue = "true")
 public class SupportDataInitializer {
 
     @Bean

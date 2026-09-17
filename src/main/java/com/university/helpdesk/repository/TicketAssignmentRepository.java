@@ -29,5 +29,7 @@ public interface TicketAssignmentRepository extends JpaRepository<TicketAssignme
             @org.springframework.data.repository.query.Param("status") AssignmentStatus status,
             @org.springframework.data.repository.query.Param("ticketIds") java.util.Collection<Long> ticketIds
     );
+
+    void deleteByTicketTicketId(Long ticketId);
 }
 

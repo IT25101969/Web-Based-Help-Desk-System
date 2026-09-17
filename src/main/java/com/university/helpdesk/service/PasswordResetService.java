@@ -28,17 +28,23 @@ public class PasswordResetService {
     private final PasswordEncoder passwordEncoder;
     private final ActivityLogService activityLogService;
     private final SecureRandom secureRandom = new SecureRandom();
+    private final com.university.helpdesk.repository.EmailNotificationQueueRepository emailQueueRepository;
+    private final String publicUrl;
 
     public PasswordResetService(
             UserAccountRepository userAccountRepository,
             PasswordResetTokenRepository tokenRepository,
             PasswordEncoder passwordEncoder,
-            ActivityLogService activityLogService
+            ActivityLogService activityLogService,
+            com.university.helpdesk.repository.EmailNotificationQueueRepository emailQueueRepository,
+            @org.springframework.beans.factory.annotation.Value("${app.public-url:http://localhost:8080}") String publicUrl
     ) {
         this.userAccountRepository = userAccountRepository;
         this.tokenRepository = tokenRepository;
         this.passwordEncoder = passwordEncoder;
         this.activityLogService = activityLogService;
+        this.emailQueueRepository = emailQueueRepository;
+        this.publicUrl = publicUrl.replaceAll("/+$", "");
     }
 
     @Transactional
@@ -76,6 +82,14 @@ public class PasswordResetService {
 
         tokenRepository.save(token);
 
+        com.university.helpdesk.entity.EmailNotificationQueue email = new com.university.helpdesk.entity.EmailNotificationQueue();
+        email.setUser(user);
+        email.setRecipientEmail(user.getEmail());
+        email.setSubject("University Help Desk password reset");
+        email.setMessage("Reset your password within 30 minutes: " + publicUrl + "/reset-password?token=" + rawToken
+                + "\nIf you did not request this, ignore this message.");
+        emailQueueRepository.save(email);
+
         activityLogService.log(
                 user,
                 "PASSWORD_RESET_REQUESTED",
@@ -112,7 +126,7 @@ public class PasswordResetService {
         }
 
         Optional<PasswordResetToken> tokenOptional =
-                tokenRepository.findByTokenHashAndUsedFalse(hashToken(rawToken));
+                tokenRepository.findUnusedForUpdate(hashToken(rawToken));
 
         if (tokenOptional.isEmpty()) {
             return false;

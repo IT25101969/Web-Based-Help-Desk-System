@@ -27,7 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @Transactional
-class StudentTicketWebMvcTests {
+class StudentTicketWebMvcTests extends com.university.helpdesk.TestAccounts {
 
     private MockMvc mockMvc;
 
@@ -103,7 +103,7 @@ class StudentTicketWebMvcTests {
 
         activeCategory = categoryRepository.findByCategoryName("Password Reset")
                 .orElseGet(() -> {
-                    Department itDept = departmentRepository.findByDepartmentName("IT Support").orElseThrow();
+                    Department itDept = departmentRepository.findByDepartmentName("IT Support").orElseGet(() -> { Department d = new Department(); d.setDepartmentName("IT Support"); return departmentRepository.save(d); });
                     Category c = new Category();
                     c.setCategoryName("Password Reset");
                     c.setDepartment(itDept);

@@ -68,7 +68,7 @@ public class SecurityConfig {
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/student/tickets/*/comments",
-                                "/student/tickets/*/feedback"
+                                "/student/tickets/*/feedback", "/student/tickets/*/delete", "/student/tickets/*/attachments/*/delete"
                         ).access(new WebExpressionAuthorizationManager(
                                 "hasRole('Student') and hasAuthority('VIEW_OWN_TICKETS')"
                         ))
@@ -76,7 +76,7 @@ public class SecurityConfig {
                         // Help Desk / Department Support ticket handling
                         .requestMatchers(
                                 HttpMethod.POST,
-                                "/staff/tickets/*/assign"
+                                "/staff/tickets/*/assign", "/staff/tickets/*/unassign"
                         ).access(new WebExpressionAuthorizationManager(
                                 "hasAnyRole('Help Desk Support Staff','Department Support Team Member') " +
                                         "and hasAuthority('ASSIGN_TICKET')"
@@ -85,7 +85,7 @@ public class SecurityConfig {
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/staff/tickets/*/status",
-                                "/staff/tickets/*/comments",
+                                "/staff/tickets/*/comments", "/staff/tickets/*/comments/*/delete",
                                 "/staff/tickets/*/priority"
                         ).access(new WebExpressionAuthorizationManager(
                                 "hasAnyRole('Help Desk Support Staff','Department Support Team Member') " +
@@ -103,7 +103,7 @@ public class SecurityConfig {
                         // Department Manager ticket handling
                         .requestMatchers(
                                 HttpMethod.POST,
-                                "/manager/tickets/*/assign"
+                                "/manager/tickets/*/assign", "/manager/tickets/*/unassign"
                         ).access(new WebExpressionAuthorizationManager(
                                 "hasRole('Department Manager') and hasAuthority('ASSIGN_TICKET')"
                         ))
@@ -111,7 +111,7 @@ public class SecurityConfig {
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/manager/tickets/*/status",
-                                "/manager/tickets/*/comments",
+                                "/manager/tickets/*/comments", "/manager/tickets/*/comments/*/delete",
                                 "/manager/tickets/*/priority"
                         ).access(new WebExpressionAuthorizationManager(
                                 "hasRole('Department Manager') and hasAuthority('UPDATE_TICKET')"
@@ -127,7 +127,7 @@ public class SecurityConfig {
                         // System Administrator ticket handling
                         .requestMatchers(
                                 HttpMethod.POST,
-                                "/admin/tickets/*/assign"
+                                "/admin/tickets/*/assign", "/admin/tickets/*/unassign"
                         ).access(new WebExpressionAuthorizationManager(
                                 "hasRole('System Administrator') and hasAuthority('ASSIGN_TICKET')"
                         ))
@@ -135,7 +135,7 @@ public class SecurityConfig {
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/admin/tickets/*/status",
-                                "/admin/tickets/*/comments",
+                                "/admin/tickets/*/comments", "/admin/tickets/*/comments/*/delete",
                                 "/admin/tickets/*/priority"
                         ).access(new WebExpressionAuthorizationManager(
                                 "hasRole('System Administrator') and hasAuthority('UPDATE_TICKET')"
@@ -149,6 +149,11 @@ public class SecurityConfig {
                         ))
 
                         // Administration permissions
+                        .requestMatchers("/reports", "/reports/**")
+                        .access(new WebExpressionAuthorizationManager(
+                                "hasAnyRole('System Administrator','University Management') and hasAuthority('VIEW_REPORTS')"
+                        ))
+
                         .requestMatchers("/admin/users/**")
                         .access(new WebExpressionAuthorizationManager(
                                 "hasRole('System Administrator') and hasAuthority('MANAGE_USERS')"

@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface UserCommentRepository extends JpaRepository<UserComment, Long> {
     List<UserComment> findByTicketTicketIdOrderByCreatedDateAsc(Long ticketId);
+    void deleteByTicketTicketId(Long ticketId);
 }

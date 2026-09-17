@@ -9,6 +9,7 @@ import com.university.helpdesk.repository.UserAccountRepository;
 import com.university.helpdesk.repository.UserRoleRepository;
 
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -23,7 +24,9 @@ public class DataInitializer {
             UserAccountRepository userAccountRepository,
             RoleRepository roleRepository,
             UserRoleRepository userRoleRepository,
-            PasswordEncoder passwordEncoder
+            PasswordEncoder passwordEncoder,
+            @Value("${app.seed.demo:false}") boolean seedDemo,
+            @Value("${app.seed.demo-password:}") String demoPassword
     ) {
 
         return args -> {
@@ -64,6 +67,13 @@ public class DataInitializer {
                     "University Management User"
             );
 
+            if (!seedDemo) {
+                return;
+            }
+            if (demoPassword.isBlank()) {
+                throw new IllegalStateException("DEMO_PASSWORD is required when SEED_DEMO_DATA=true.");
+            }
+
             createUserIfMissing(
                     userAccountRepository,
                     userRoleRepository,
@@ -71,7 +81,7 @@ public class DataInitializer {
                     studentRole,
                     "STU001",
                     "student@university.edu",
-                    "Student@123",
+                    demoPassword,
                     "Demo",
                     "Student"
             );
@@ -84,7 +94,7 @@ public class DataInitializer {
                     studentRole,
                     "STU002",
                     "student2@university.edu",
-                    "Student@123",
+                    demoPassword,
                     "Demo2",
                     "Student"
             );
@@ -96,7 +106,7 @@ public class DataInitializer {
                     helpDeskRole,
                     "SUP001",
                     "support@university.edu",
-                    "Support@123",
+                    demoPassword,
                     "Demo",
                     "Support"
             );
@@ -108,7 +118,7 @@ public class DataInitializer {
                     departmentSupportRole,
                     "DSU001",
                     "departmentsupport@university.edu",
-                    "Department@123",
+                    demoPassword,
                     "Demo",
                     "Department Support"
             );
@@ -120,7 +130,7 @@ public class DataInitializer {
                     departmentManagerRole,
                     "MGR001",
                     "manager@university.edu",
-                    "Manager@123",
+                    demoPassword,
                     "Demo",
                     "Manager"
             );
@@ -132,7 +142,7 @@ public class DataInitializer {
                     adminRole,
                     "ADM001",
                     "admin@university.edu",
-                    "Admin@123",
+                    demoPassword,
                     "Demo",
                     "Administrator"
             );
@@ -144,7 +154,7 @@ public class DataInitializer {
                     managementRole,
                     "UMG001",
                     "management@university.edu",
-                    "Management@123",
+                    demoPassword,
                     "Demo",
                     "Management"
             );

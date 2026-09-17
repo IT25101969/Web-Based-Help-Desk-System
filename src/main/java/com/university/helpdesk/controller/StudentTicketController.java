@@ -62,13 +62,16 @@ public class StudentTicketController {
     @GetMapping("/new")
     public String createForm(
             @RequestParam(value = "categoryId", required = false) Long categoryId,
+            @RequestParam(value = "type", required = false) TicketType type,
             Model model
     ) {
         TicketSubmissionForm form = new TicketSubmissionForm();
         if (categoryId != null) {
-            form.setCategoryId(categoryId);
+            categoryRepository.findById(categoryId)
+                    .filter(category -> "ACTIVE".equalsIgnoreCase(category.getStatus()))
+                    .ifPresent(category -> form.setCategoryId(category.getCategoryId()));
         }
-        form.setTicketType(TicketType.INCIDENT);
+        form.setTicketType(type == null ? TicketType.INCIDENT : type);
 
         model.addAttribute("form", form);
         model.addAttribute(
@@ -97,29 +100,15 @@ public class StudentTicketController {
         }
 
         try {
-            Ticket ticket = ticketService.createTicket(
+            Ticket ticket = ticketService.createTicketWithAttachment(
                     authentication.getName(),
                     form.getCategoryId(),
                     form.getTicketType(),
                     form.getSubject(),
                     form.getDescription(),
                     form.getSubtypeDetail(),
-                    form.getSeverity()
+                    form.getSeverity(), form.getAttachment()
             );
-
-            if (form.getAttachment() != null && !form.getAttachment().isEmpty()) {
-                try {
-                    attachmentService.store(ticket, form.getAttachment());
-                } catch (IllegalArgumentException ex) {
-                    model.addAttribute("error", ex.getMessage());
-                    model.addAttribute(
-                            "categories",
-                            categoryRepository.findByStatusIgnoreCaseOrderByCategoryNameAsc("ACTIVE")
-                    );
-                    model.addAttribute("ticketTypes", TicketType.values());
-                    return "student-ticket-form";
-                }
-            }
 
             redirectAttributes.addFlashAttribute(
                     "success",
@@ -213,6 +202,8 @@ public class StudentTicketController {
                     feedbackComment
             );
             redirectAttributes.addFlashAttribute("success", "Thank you for your feedback.");
+        } catch (AccessDeniedException ex) {
+            throw ex;
         } catch (RuntimeException ex) {
             redirectAttributes.addFlashAttribute("error", ex.getMessage());
         }
@@ -254,6 +245,42 @@ public class StudentTicketController {
                                 .toString()
                 )
                 .body(resource);
+    }
+
+    @PostMapping("/{ticketId}/delete")
+    public String delete(
+            @PathVariable Long ticketId,
+            Authentication authentication,
+            RedirectAttributes redirectAttributes
+    ) {
+        try {
+            ticketService.deleteStudentTicket(ticketId, authentication.getName());
+            redirectAttributes.addFlashAttribute("success", "Ticket deleted successfully.");
+            return "redirect:/student/tickets";
+        } catch (AccessDeniedException ex) {
+            throw ex;
+        } catch (RuntimeException ex) {
+            redirectAttributes.addFlashAttribute("error", ex.getMessage());
+            return "redirect:/student/tickets/" + ticketId;
+        }
+    }
+
+    @PostMapping("/{ticketId}/attachments/{attachmentId}/delete")
+    public String deleteAttachment(
+            @PathVariable Long ticketId,
+            @PathVariable Long attachmentId,
+            Authentication authentication,
+            RedirectAttributes redirectAttributes
+    ) {
+        try {
+            attachmentService.deleteAttachment(attachmentId, ticketId, authentication.getName());
+            redirectAttributes.addFlashAttribute("success", "Attachment removed successfully.");
+        } catch (AccessDeniedException ex) {
+            throw ex;
+        } catch (RuntimeException ex) {
+            redirectAttributes.addFlashAttribute("error", ex.getMessage());
+        }
+        return "redirect:/student/tickets/" + ticketId;
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)

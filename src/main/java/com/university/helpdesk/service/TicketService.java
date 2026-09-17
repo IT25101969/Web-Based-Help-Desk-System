@@ -29,6 +29,12 @@ public class TicketService {
     private final NotificationService notificationService;
     private final TicketAssignmentRepository assignmentRepository;
     private final ActivityLogService activityLogService;
+    private final AttachmentRepository attachmentRepository;
+    private final AttachmentService attachmentService;
+    private final UserCommentRepository userCommentRepository;
+    private final FeedbackRepository feedbackRepository;
+    private final NotificationRepository notificationRepository;
+    private final EmailNotificationQueueRepository emailQueueRepository;
 
     public TicketService(
             TicketRepository ticketRepository,
@@ -42,7 +48,13 @@ public class TicketService {
             UserRoleRepository userRoleRepository,
             NotificationService notificationService,
             TicketAssignmentRepository assignmentRepository,
-            ActivityLogService activityLogService
+            ActivityLogService activityLogService,
+            AttachmentRepository attachmentRepository,
+            AttachmentService attachmentService,
+            UserCommentRepository userCommentRepository,
+            FeedbackRepository feedbackRepository,
+            NotificationRepository notificationRepository,
+            EmailNotificationQueueRepository emailQueueRepository
     ) {
         this.ticketRepository = ticketRepository;
         this.categoryRepository = categoryRepository;
@@ -56,6 +68,21 @@ public class TicketService {
         this.notificationService = notificationService;
         this.assignmentRepository = assignmentRepository;
         this.activityLogService = activityLogService;
+        this.attachmentRepository = attachmentRepository;
+        this.attachmentService = attachmentService;
+        this.userCommentRepository = userCommentRepository;
+        this.feedbackRepository = feedbackRepository;
+        this.notificationRepository = notificationRepository;
+        this.emailQueueRepository = emailQueueRepository;
+    }
+
+    @Transactional(rollbackFor = java.io.IOException.class)
+    public Ticket createTicketWithAttachment(String universityId, Long categoryId, TicketType ticketType,
+            String subject, String description, String subtypeDetail, String severity,
+            org.springframework.web.multipart.MultipartFile attachment) throws java.io.IOException {
+        Ticket ticket = createTicket(universityId, categoryId, ticketType, subject, description, subtypeDetail, severity);
+        attachmentService.store(ticket, attachment);
+        return ticket;
     }
 
     @Transactional
@@ -135,6 +162,7 @@ public class TicketService {
         );
 
         notifyDestinationQueue(ticket);
+        activityLogService.log(user, "TICKET_SUBMITTED", "TICKET", ticket.getTicketId(), null);
 
         return ticket;
     }
@@ -273,6 +301,8 @@ public class TicketService {
             String changedByUniversityId,
             String reason
     ) {
+        ticketRepository.findByIdWithLock(ticketId)
+                .orElseThrow(() -> new IllegalArgumentException("Ticket was not found."));
         Ticket ticket = getAuthorizedSupportTicket(ticketId, changedByUniversityId);
         UserAccount actor = userAccountRepository.findByUniversityId(changedByUniversityId)
                 .orElseThrow(() -> new IllegalArgumentException("User was not found."));
@@ -325,6 +355,8 @@ public class TicketService {
         history.setNewStatus(newStatus);
         history.setReason(blankToNull(reason));
         historyRepository.save(history);
+        activityLogService.log(actor, "TICKET_STATUS_CHANGED: " + oldStatus + " -> " + newStatus,
+                "TICKET", ticketId, null);
 
         NotificationType type = switch (newStatus) {
             case ASSIGNED -> NotificationType.ASSIGNED;
@@ -473,5 +505,46 @@ public class TicketService {
             return null;
         }
         return value.trim();
+    }
+
+    @Transactional
+    public void deleteStudentTicket(Long ticketId, String studentUniversityId) {
+        Ticket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new IllegalArgumentException("Ticket was not found."));
+
+        if (ticket.getStudent() == null ||
+                !ticket.getStudent().getUser().getUniversityId().equals(studentUniversityId)) {
+            throw new AccessDeniedException("You are not authorized to delete this ticket.");
+        }
+
+        // Clean up physical attachments
+        List<Attachment> attachments = attachmentRepository.findByTicketTicketId(ticketId);
+        for (Attachment a : attachments) {
+            try {
+                attachmentService.deleteAttachment(a.getAttachmentId(), ticketId, studentUniversityId);
+            } catch (Exception ignored) {
+            }
+        }
+
+        feedbackRepository.deleteByTicketTicketId(ticketId);
+        userCommentRepository.deleteByTicketTicketId(ticketId);
+        historyRepository.deleteByTicketTicketId(ticketId);
+        assignmentRepository.deleteByTicketTicketId(ticketId);
+        emailQueueRepository.disassociateNotificationByTicketId(ticketId);
+        emailQueueRepository.deleteByTicketTicketId(ticketId);
+        notificationRepository.deleteByTicketTicketId(ticketId);
+
+        incidentRepository.deleteById(ticketId);
+        serviceRequestRepository.deleteById(ticketId);
+
+        ticketRepository.delete(ticket);
+
+        activityLogService.log(
+                ticket.getStudent().getUser(),
+                "TICKET_DELETED",
+                "TICKET",
+                ticketId,
+                null
+        );
     }
 }

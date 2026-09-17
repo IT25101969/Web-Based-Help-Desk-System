@@ -88,6 +88,39 @@ public class NotificationController {
         return "redirect:/notifications";
     }
 
+    @PostMapping("/{notificationId}/delete")
+    public String delete(
+            @PathVariable Long notificationId,
+            Authentication authentication,
+            RedirectAttributes redirectAttributes
+    ) {
+        UserAccount user = getAuthenticatedUser(authentication);
+
+        try {
+            notificationService.deleteNotification(notificationId, user.getUserId());
+            redirectAttributes.addFlashAttribute("successMessage", "Notification deleted successfully.");
+        } catch (org.springframework.security.access.AccessDeniedException ex) {
+            throw ex;
+        } catch (RuntimeException ex) {
+            redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
+        }
+
+        return "redirect:/notifications";
+    }
+
+    @PostMapping("/clear-all")
+    public String clearAll(
+            Authentication authentication,
+            RedirectAttributes redirectAttributes
+    ) {
+        UserAccount user = getAuthenticatedUser(authentication);
+
+        int count = notificationService.clearAllForUser(user.getUserId());
+        redirectAttributes.addFlashAttribute("successMessage", "Cleared all " + count + " notifications.");
+
+        return "redirect:/notifications";
+    }
+
     @GetMapping("/{notificationId}/go")
     public String navigateToTicket(
             @PathVariable Long notificationId,

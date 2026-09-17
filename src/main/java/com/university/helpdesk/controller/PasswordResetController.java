@@ -16,7 +16,7 @@ public class PasswordResetController {
 
     private final PasswordResetService passwordResetService;
 
-    @Value("${app.security.show-reset-link:true}")
+    @Value("${app.security.show-reset-link:false}")
     private boolean showResetLink;
 
     public PasswordResetController(

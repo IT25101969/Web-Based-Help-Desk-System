@@ -211,4 +211,23 @@ public class NotificationService {
     public int markAllRead(Long userId) {
         return notificationRepository.markAllReadForUser(userId, LocalDateTime.now());
     }
+
+    @Transactional
+    public void deleteNotification(Long notificationId, Long userId) {
+        Notification notification = notificationRepository.findById(notificationId)
+                .orElseThrow(() -> new IllegalArgumentException("Notification was not found."));
+
+        if (!notification.getUser().getUserId().equals(userId)) {
+            throw new AccessDeniedException("You cannot delete this notification.");
+        }
+
+        emailQueueRepository.disassociateNotification(notificationId);
+        notificationRepository.delete(notification);
+    }
+
+    @Transactional
+    public int clearAllForUser(Long userId) {
+        emailQueueRepository.disassociateAllNotificationsForUser(userId);
+        return notificationRepository.deleteAllForUser(userId);
+    }
 }

@@ -182,7 +182,7 @@ public class ReportAndAdminServiceTests {
 
     private Ticket createTicket(Category cat, TicketStatus status, LocalDateTime created, LocalDateTime resolved) {
         Ticket t = new Ticket();
-        t.setReferenceNo("TICK-" + System.currentTimeMillis() + "-" + (System.nanoTime() % 10000));
+        t.setReferenceNo("TICK-" + java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 24));
         t.setStudent(studentRepository.findById(testStudent.getUserId()).orElseThrow());
         t.setCategory(cat);
         t.setTicketType(TicketType.INCIDENT);

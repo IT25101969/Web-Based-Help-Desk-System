@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @Transactional
-class StudentTicketSubmissionTests {
+class StudentTicketSubmissionTests extends com.university.helpdesk.TestAccounts {
 
     @Autowired
     private TicketService ticketService;

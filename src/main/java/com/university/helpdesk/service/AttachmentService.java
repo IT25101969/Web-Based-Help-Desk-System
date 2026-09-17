@@ -115,4 +115,27 @@ public class AttachmentService {
         }
         return resource;
     }
+
+    @Transactional
+    public void deleteAttachment(Long attachmentId, Long ticketId, String studentUniversityId) {
+        Attachment attachment = getAttachment(attachmentId);
+        if (!attachment.getTicket().getTicketId().equals(ticketId)) {
+            throw new IllegalArgumentException("Attachment does not belong to this ticket.");
+        }
+        if (studentUniversityId != null && attachment.getTicket().getStudent() != null) {
+            String ownerId = attachment.getTicket().getStudent().getUser().getUniversityId();
+            if (!ownerId.equals(studentUniversityId)) {
+                throw new org.springframework.security.access.AccessDeniedException("You are not authorized to delete this attachment.");
+            }
+        }
+        try {
+            Path path = uploadRoot.resolve(attachment.getFilePath()).normalize();
+            if (!path.startsWith(uploadRoot)) {
+                throw new SecurityException("Invalid attachment path.");
+            }
+            Files.deleteIfExists(path);
+        } catch (IOException ignored) {
+        }
+        attachmentRepository.delete(attachment);
+    }
 }

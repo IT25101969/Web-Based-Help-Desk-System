@@ -3,6 +3,7 @@
 *.iml
 target/
 .env
+cookies.txt
 *.log
 uploads/*
 !uploads/.gitkeep

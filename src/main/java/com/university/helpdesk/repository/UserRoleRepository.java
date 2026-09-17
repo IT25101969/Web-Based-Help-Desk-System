@@ -13,6 +13,7 @@ import java.util.Optional;
 public interface UserRoleRepository extends JpaRepository<UserRole, UserRoleId> {
 
     List<UserRole> findByUserUserIdAndActiveTrue(Long userId);
+    List<UserRole> findByUserUserId(Long userId);
 
     List<UserRole> findByRoleRoleNameAndActiveTrue(String roleName);
 

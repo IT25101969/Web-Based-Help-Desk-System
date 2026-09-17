@@ -8,4 +8,5 @@ import java.util.Optional;
 public interface FeedbackRepository extends JpaRepository<Feedback, Long> {
     Optional<Feedback> findByTicketTicketId(Long ticketId);
     boolean existsByTicketTicketId(Long ticketId);
+    void deleteByTicketTicketId(Long ticketId);
 }
