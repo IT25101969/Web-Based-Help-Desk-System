@@ -14,7 +14,7 @@ public class Incident {
     @JoinColumn(name = "Ticket_ID")
     private Ticket ticket;
 
-    @Column(name = "Incident_Type", length = 120)
+    @Column(name = "Incident_Type", length = 150)
     private String incidentType;
 
     @Column(name = "Severity", length = 30)

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>My Assets - University Help Desk</title><link rel="stylesheet" th:href="@{/css/app.css}"><link rel="stylesheet" th:href="@{/css/assets.css}"></head>
+<body class="app-page"><header th:replace="~{fragments/topbar :: topbar('my-assets')}"></header>
+<main class="container">
+    <section class="workspace-hero"><div><div class="section-eyebrow">YOUR CAMPUS EQUIPMENT</div><h1>My Assets</h1><p>Equipment assigned to your account. Contact an administrator to request changes to an assignment or equipment record.</p></div><a class="btn secondary" th:href="@{/dashboard}">Back to dashboard</a></section>
+    <div th:if="${success}" class="alert success" role="status" th:text="${success}"></div>
+    <div th:if="${error}" class="alert error" role="alert" th:text="${error}"></div>
+    <section class="card"><div class="section-heading"><h2>Assigned equipment</h2><span class="badge" th:text="${assetPage.totalElements + ' assets'}"></span></div>
+        <div th:if="${assetPage.empty}" class="asset-empty"><div class="asset-empty-icon" aria-hidden="true">▣</div><h3>No assigned equipment</h3><p class="muted">Equipment will appear here when an administrator assigns it to your account.</p></div>
+        <div th:unless="${assetPage.empty}" class="table-responsive" tabindex="0" role="region" aria-label="My assigned equipment">
+            <table><thead><tr><th>Asset</th><th>Type &amp; location</th><th>Department</th><th>Serial number</th><th>Condition</th><th sec:authorize="hasAnyRole('Help Desk Support Staff','Department Support Team Member')">Maintenance</th></tr></thead>
+                <tbody><tr th:each="asset : ${assetPage.content}">
+                    <td><strong th:text="${asset.assetName}"></strong><span class="asset-secondary" th:text="${asset.assetTag}"></span></td>
+                    <td><span th:text="${asset.assetType.label}"></span><span class="asset-secondary" th:text="${asset.location}"></span></td>
+                    <td th:text="${asset.department.departmentName}"></td>
+                    <td th:text="${#strings.isEmpty(asset.serialNumber) ? 'Not recorded' : asset.serialNumber}"></td>
+                    <td><span th:class="${'asset-condition condition-' + #strings.toLowerCase(asset.condition)}" th:text="${asset.condition.label}"></span></td>
+                    <td sec:authorize="hasAnyRole('Help Desk Support Staff','Department Support Team Member')">
+                        <details class="repair-composer" th:if="${!#lists.contains(pendingAssetIds, asset.assetId) and (asset.condition.name() == 'UNDER_MAINTENANCE' or asset.condition.name() == 'OUT_OF_SERVICE')}">
+                            <summary>Mark Maintenance Complete</summary>
+                            <form th:action="@{/my-assets/{id}/maintenance-complete(id=${asset.assetId})}" method="post">
+                                <label th:for="${'repair-notes-' + asset.assetId}">Repair notes <span aria-hidden="true">*</span></label>
+                                <textarea th:id="${'repair-notes-' + asset.assetId}" name="notes" rows="4" required maxlength="2000" placeholder="Describe the repair and checks performed" th:text="${repairNotes}"></textarea>
+                                <p class="muted">The administrator will review your report before marking the asset as working.</p>
+                                <button class="btn btn-sm" type="submit">Submit for review</button>
+                            </form>
+                        </details>
+                        <span class="badge" th:if="${#lists.contains(pendingAssetIds, asset.assetId)}">Awaiting admin review</span>
+                        <span class="muted" th:unless="${asset.condition.name() == 'UNDER_MAINTENANCE' or asset.condition.name() == 'OUT_OF_SERVICE'}">No repair required</span>
+                    </td>
+                </tr></tbody>
+            </table>
+        </div>
+        <nav th:if="${assetPage.totalPages > 1}" class="asset-pagination" aria-label="Assigned equipment pages">
+            <a th:if="${assetPage.hasPrevious()}" class="btn secondary btn-sm" th:href="@{/my-assets(page=${assetPage.number - 1})}">← Previous</a>
+            <span th:text="${'Page ' + (assetPage.number + 1) + ' of ' + assetPage.totalPages}"></span>
+            <a th:if="${assetPage.hasNext()}" class="btn secondary btn-sm" th:href="@{/my-assets(page=${assetPage.number + 1})}">Next →</a>
+        </nav>
+    </section>
+    <section th:replace="~{fragments/asset-repairs :: reports(false)}"></section>
+</main></body></html>

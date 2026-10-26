@@ -5,108 +5,27 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Notification Preferences - University Help Desk</title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
-    <style>
-        .pref-card {
-            display: flex;
-            align-items: flex-start;
-            gap: 16px;
-            padding: 16px;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            margin-bottom: 16px;
-            background: #ffffff;
-        }
-        .pref-card:hover {
-            border-color: #cbd5e1;
-            box-shadow: 0 2px 8px rgba(15,23,42,0.04);
-        }
-        .pref-checkbox {
-            width: 22px;
-            height: 22px;
-            margin-top: 3px;
-            cursor: pointer;
-            accent-color: #2563eb;
-        }
-        .pref-info h3 {
-            margin: 0 0 4px 0;
-            font-size: 16px;
-            color: #0f172a;
-        }
-        .pref-info p {
-            margin: 0;
-            font-size: 14px;
-            color: #64748b;
-            line-height: 1.4;
-        }
-    </style>
+<link rel="stylesheet" th:href="@{/css/workspace-polish.css}">
 </head>
-<body>
+<body class="app-page refined-page preferences-page">
 
-<header class="topbar">
-    <a th:href="@{/dashboard}" class="topbar-brand">
-        <strong>University</strong> <span>Help Desk</span>
-    </a>
-    <nav class="topbar-nav" sec:authorize="hasRole('Student')">
-        <a th:href="@{/student/dashboard}">Dashboard</a>
-        <a th:href="@{/student/tickets}">My Tickets</a>
-        <a th:href="@{/student/tickets/new}">Submit Ticket</a>
-        <a th:href="@{/faq}">FAQ</a>
-        <a th:href="@{/notifications}">Notifications</a>
-        <a th:href="@{/notifications/preferences}" class="active">Preferences</a>
-    </nav>
-    <nav class="topbar-nav" sec:authorize="hasAnyRole('Help Desk Support Staff', 'Department Support Team Member')">
-        <a th:href="@{/staff/dashboard}">Dashboard</a>
-        <a th:href="@{/staff/tickets}">Ticket Queue</a>
-        <a th:href="@{/faq}">FAQ</a>
-        <a th:href="@{/notifications}">Notifications</a>
-        <a th:href="@{/notifications/preferences}" class="active">Preferences</a>
-    </nav>
-    <nav class="topbar-nav" sec:authorize="hasRole('Department Manager')">
-        <a th:href="@{/manager/dashboard}">Dashboard</a>
-        <a th:href="@{/manager/tickets}">Ticket Queue</a>
-        <a th:href="@{/faq}">FAQ</a>
-        <a th:href="@{/notifications}">Notifications</a>
-        <a th:href="@{/notifications/preferences}" class="active">Preferences</a>
-    </nav>
-    <nav class="topbar-nav" sec:authorize="hasRole('System Administrator')">
-        <a th:href="@{/admin/dashboard}">Dashboard</a>
-        <a th:href="@{/admin/tickets}">Tickets</a>
-        <a th:href="@{/admin/faqs}">FAQ Admin</a>
-        <a th:href="@{/admin/reports}">Reports</a>
-        <a th:href="@{/admin/users}">Users</a>
-        <a th:href="@{/notifications}">Notifications</a>
-        <a th:href="@{/notifications/preferences}" class="active">Preferences</a>
-    </nav>
-    <nav class="topbar-nav" sec:authorize="hasRole('University Management')">
-        <a th:href="@{/management/dashboard}">Dashboard</a>
-        <a th:href="@{/management/reports}">Reports</a>
-        <a th:href="@{/notifications}">Notifications</a>
-        <a th:href="@{/notifications/preferences}" class="active">Preferences</a>
-    </nav>
-    <div class="topbar-user">
-        <form th:action="@{/logout}" method="post" style="display:inline; margin:0;">
-            <button type="submit" class="btn-logout">Logout</button>
-        </form>
-    </div>
-</header>
+<header th:replace="~{fragments/topbar :: topbar('preferences')}"></header>
 
-<div class="container" style="max-width:750px;">
+<div class="container">
 
     <div th:if="${successMessage}" class="alert success" th:text="${successMessage}"></div>
     <div th:if="${errorMessage}" class="alert error" th:text="${errorMessage}"></div>
 
-    <div class="card">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-            <div>
-                <h1 style="margin:0 0 6px 0;">Notification Preferences</h1>
-                <p class="muted" style="margin:0;">
-                    Manage how and where you receive notifications and ticket updates.
-                </p>
-            </div>
-            <a th:href="@{/notifications}" class="btn secondary" style="font-size:13px;">&larr; Back to Notifications</a>
+    <div class="page-header page-hero">
+        <div>
+            <span class="page-eyebrow">NOTIFICATIONS / DELIVERY</span>
+            <h1 class="page-title">Notification preferences</h1>
+            <p class="page-subtitle">Choose how you receive ticket updates and support alerts.</p>
         </div>
-
-        <form th:action="@{/notifications/preferences}" method="post" style="margin-top:20px;">
+        <a th:href="@{/notifications}" class="btn secondary">&larr; Back to notifications</a>
+    </div>
+    <div class="card">
+        <form th:action="@{/notifications/preferences}" method="post">
             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
 
             <!-- In-App Notifications Option -->
@@ -121,7 +40,7 @@
                     <p>
                         Display alerts directly in your portal Notification Center when your tickets are created, assigned, updated, or resolved.
                     </p>
-                    <p style="font-size:12px; color:#94a3b8; margin-top:4px;">
+                    <p class="preference-note">
                         <em>Note: Mandatory security and administrative system alerts will always be delivered to your portal account.</em>
                     </p>
                 </div>
@@ -142,7 +61,7 @@
                 </div>
             </label>
 
-            <div style="margin-top:24px; display:flex; gap:12px; align-items:center;">
+            <div class="refined-form-actions">
                 <button type="submit" class="btn" style="padding:10px 24px;">Save Preferences</button>
                 <a th:href="@{/notifications}" class="btn secondary" style="padding:10px 18px;">Cancel</a>
             </div>

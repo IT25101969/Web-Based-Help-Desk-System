@@ -299,6 +299,9 @@ public class FaqService {
         if (answer == null || answer.trim().isEmpty()) {
             throw new IllegalArgumentException("Answer is required.");
         }
+        if (answer.length() > 20000) {
+            throw new IllegalArgumentException("Answer must be 20,000 characters or fewer.");
+        }
     }
 
     private UserAccount resolveUser(String universityId) {

@@ -7,3 +7,6 @@ cookies.txt
 *.log
 uploads/*
 !uploads/.gitkeep
+
+.env.*
+!.env.example

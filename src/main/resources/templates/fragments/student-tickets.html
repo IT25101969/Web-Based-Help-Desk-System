@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"><body>
+<div th:fragment="listing(entries, allowDelete)" class="table-responsive personal-ticket-table" tabindex="0" role="region" aria-label="Student support requests">
+    <table><thead><tr><th scope="col">Ticket</th><th scope="col">Request type</th><th scope="col">Priority</th><th scope="col">Status</th><th scope="col">Submitted</th><th scope="col">Actions</th></tr></thead><tbody>
+    <tr th:each="ticket : ${entries}">
+        <td class="personal-ticket-summary"><a class="record-ref" th:href="@{/student/tickets/{id}(id=${ticket.ticketId})}" th:text="${ticket.referenceNo}"></a><a class="table-link" th:href="@{/student/tickets/{id}(id=${ticket.ticketId})}" th:text="${ticket.subject}"></a><small th:text="${ticket.category != null ? ticket.category.categoryName : 'General inquiry'}"></small></td>
+        <td><span class="personal-ticket-type" th:text="${#strings.capitalize(#strings.toLowerCase(#strings.replace(ticket.ticketType.name(), '_', ' ')))}"></span></td>
+        <td><span th:class="'badge badge-priority-' + ${#strings.toLowerCase(ticket.priority)}" th:text="${#strings.capitalize(#strings.toLowerCase(ticket.priority))}"></span></td>
+        <td><span th:class="'badge badge-status-' + ${#strings.replace(#strings.toLowerCase(ticket.status),'_','-')}" th:text="${#strings.capitalize(#strings.toLowerCase(#strings.replace(ticket.status.name(),'_',' ')))}"></span></td>
+        <td><time th:datetime="${ticket.createdDate}" th:text="${#temporals.format(ticket.createdDate,'dd MMM yyyy')}"></time><small th:text="${#temporals.format(ticket.createdDate,'HH:mm')}"></small></td>
+        <td><div class="personal-ticket-actions"><a class="btn btn-sm secondary" th:href="@{/student/tickets/{id}(id=${ticket.ticketId})}">View Details</a><form th:if="${allowDelete and (ticket.status.name() == 'NEW' or ticket.status.name() == 'OPEN')}" th:action="@{/student/tickets/{id}/delete(id=${ticket.ticketId})}" method="post" class="inline-form"><button class="btn btn-sm danger" type="submit" onclick="return confirm('Are you sure you want to delete this ticket?');">Delete</button></form></div></td>
+    </tr></tbody></table>
+</div>
+</body></html>

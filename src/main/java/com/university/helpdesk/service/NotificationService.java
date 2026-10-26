@@ -19,6 +19,19 @@ public class NotificationService {
     private static final Logger log = LoggerFactory.getLogger(NotificationService.class);
     private static final int DUPLICATE_WINDOW_MINUTES = 2;
 
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<Notification> searchForUser(Long userId, boolean unreadOnly, NotificationType type, int page, int size) {
+        int boundedSize = Math.max(5, Math.min(50, size));
+        var order = org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdDate", "notificationId");
+        var result = notificationRepository.searchForUser(userId, unreadOnly, type,
+                org.springframework.data.domain.PageRequest.of(Math.max(0, Math.min(page, Integer.MAX_VALUE / boundedSize)), boundedSize, order));
+        if (result.isEmpty() && result.getTotalElements() > 0 && result.getNumber() > 0) {
+            result = notificationRepository.searchForUser(userId, unreadOnly, type,
+                    org.springframework.data.domain.PageRequest.of(result.getTotalPages() - 1, boundedSize, order));
+        }
+        return result;
+    }
+
     private final NotificationRepository notificationRepository;
     private final NotificationPreferenceService preferenceService;
     private final EmailNotificationQueueRepository emailQueueRepository;
@@ -163,6 +176,7 @@ public class NotificationService {
             case RESOLVED -> "Ticket Resolved";
             case CLOSED -> "Ticket Closed";
             case SYSTEM -> "System Notification";
+            case OVERDUE -> "Resolution Target Overdue";
         };
     }
 
@@ -184,7 +198,7 @@ public class NotificationService {
     @Transactional(readOnly = true)
     public Notification getNotificationForUser(Long notificationId, Long userId) {
         Notification notification = notificationRepository.findById(notificationId)
-                .orElseThrow(() -> new IllegalArgumentException("Notification was not found."));
+                .orElseThrow(() -> new ResourceNotFoundException("Notification was not found."));
 
         if (!notification.getUser().getUserId().equals(userId)) {
             throw new AccessDeniedException("You cannot access this notification.");
@@ -196,7 +210,7 @@ public class NotificationService {
     @Transactional
     public void markRead(Long notificationId, Long userId) {
         Notification notification = notificationRepository.findById(notificationId)
-                .orElseThrow(() -> new IllegalArgumentException("Notification was not found."));
+                .orElseThrow(() -> new ResourceNotFoundException("Notification was not found."));
 
         if (!notification.getUser().getUserId().equals(userId)) {
             throw new AccessDeniedException("You cannot access this notification.");
@@ -215,7 +229,7 @@ public class NotificationService {
     @Transactional
     public void deleteNotification(Long notificationId, Long userId) {
         Notification notification = notificationRepository.findById(notificationId)
-                .orElseThrow(() -> new IllegalArgumentException("Notification was not found."));
+                .orElseThrow(() -> new ResourceNotFoundException("Notification was not found."));
 
         if (!notification.getUser().getUserId().equals(userId)) {
             throw new AccessDeniedException("You cannot delete this notification.");

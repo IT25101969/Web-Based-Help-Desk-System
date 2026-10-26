@@ -220,6 +220,54 @@ public class SupportTicketSecurityWebMvcTests {
 
     // 2. Direct URL access to unauthorized department ticket returns HTTP 403
     @Test
+    void readOnlyStaffCanReadButDoNotReceiveMutationControls() throws Exception {
+        mockMvc.perform(get("/staff/tickets/" + itTicket.getTicketId())
+                        .with(user(itStaffAccount.getUniversityId()).authorities(
+                                new SimpleGrantedAuthority("ROLE_Help Desk Support Staff"),
+                                new SimpleGrantedAuthority("VIEW_ALL_TICKETS"))))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("canAssign", false))
+                .andExpect(content().string(not(containsString("id=\"assignee-select\""))))
+                .andExpect(content().string(not(containsString("id=\"update-status\""))))
+                .andExpect(content().string(not(containsString("id=\"comment-text\""))));
+    }
+
+    @Test
+    void departmentSupportCanUpdateWithoutReceivingAssignmentControls() throws Exception {
+        mockMvc.perform(get("/staff/tickets/" + itTicket.getTicketId())
+                        .with(user(deptSupportAccount.getUniversityId()).authorities(
+                                new SimpleGrantedAuthority("ROLE_Department Support Team Member"),
+                                new SimpleGrantedAuthority("VIEW_ALL_TICKETS"),
+                                new SimpleGrantedAuthority("UPDATE_TICKET"))))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("canAssign", false))
+                .andExpect(content().string(not(containsString("id=\"assignee-select\""))))
+                .andExpect(content().string(containsString("id=\"update-status\"")))
+                .andExpect(content().string(containsString("id=\"comment-text\"")));
+    }
+
+    @Test
+    void supportOnlyReceivesDeleteControlsForTheirOwnComments() throws Exception {
+        var studentComment = commentService.addComment(itTicket.getTicketId(), stuAccount.getUniversityId(),
+                "Please check this request", CommentType.PUBLIC);
+        var ownComment = commentService.addComment(itTicket.getTicketId(), itStaffAccount.getUniversityId(),
+                "Investigating this request", CommentType.INTERNAL);
+        var staff = user(itStaffAccount.getUniversityId()).authorities(
+                new SimpleGrantedAuthority("ROLE_Help Desk Support Staff"),
+                new SimpleGrantedAuthority("VIEW_ALL_TICKETS"),
+                new SimpleGrantedAuthority("UPDATE_TICKET"),
+                new SimpleGrantedAuthority("ASSIGN_TICKET"));
+        mockMvc.perform(get("/staff/tickets/" + itTicket.getTicketId()).with(staff))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("canAssign", true))
+                .andExpect(content().string(containsString("/comments/" + ownComment.getCommentId() + "/delete")))
+                .andExpect(content().string(not(containsString("/comments/" + studentComment.getCommentId() + "/delete"))));
+        mockMvc.perform(post("/staff/tickets/" + itTicket.getTicketId() + "/comments/"
+                        + studentComment.getCommentId() + "/delete").with(staff).with(csrf()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void testDirectUrlAccessToUnauthorizedDepartmentReturns403() throws Exception {
         mockMvc.perform(get("/staff/tickets/" + finTicket.getTicketId())
                         .with(user(itStaffAccount.getUniversityId())

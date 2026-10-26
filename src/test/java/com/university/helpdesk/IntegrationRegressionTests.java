@@ -36,6 +36,68 @@ class IntegrationRegressionTests extends TestAccounts {
         mvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
     }
 
+    @Test void mixedRoleRedirectsMatchAdministratorNavigation() throws Exception {
+        var identity = user("ADM001").roles("Student", "Help Desk Support Staff", "System Administrator");
+        mvc.perform(get("/dashboard").with(identity)).andExpect(redirectedUrl("/admin/dashboard"));
+        mvc.perform(get("/tickets").with(identity)).andExpect(redirectedUrl("/admin/tickets"));
+        mvc.perform(get("/faq").with(identity)).andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("href=\"/student/tickets/new"))));
+    }
+
+    @Test void feedbackRejectsOversizedCommentsBeforeDatabaseWrite() {
+        assertThrows(IllegalArgumentException.class, () -> feedbackService.submit(1L, "STU001", 5, "x".repeat(1001)));
+    }
+
+    @Autowired com.university.helpdesk.service.FeedbackService feedbackService;
+
+    @Test void administratorLockWithoutExpiryCannotBeBypassedAtLogin() throws Exception {
+        UserAccount account = accounts.findByUniversityId("STU001").orElseThrow();
+        String password = UUID.randomUUID().toString();
+        account.setPasswordHash(encoder.encode(password)); account.setAccountStatus(com.university.helpdesk.entity.AccountStatus.LOCKED);
+        account.setLockedUntil(null); accounts.saveAndFlush(account);
+        mvc.perform(post("/login").param("login", "STU001").param("password", password).with(csrf()))
+                .andExpect(redirectedUrl("/login?locked"));
+        assertEquals(com.university.helpdesk.entity.AccountStatus.LOCKED, accounts.findByUniversityId("STU001").orElseThrow().getAccountStatus());
+    }
+
+    @Test void passwordResetCannotRemoveAdministratorLock() {
+        UserAccount account = accounts.findByUniversityId("STU001").orElseThrow();
+        String token = resets.createResetToken("STU001", "127.0.0.1").orElseThrow();
+        String originalHash = account.getPasswordHash();
+        account.setAccountStatus(AccountStatus.LOCKED);
+        account.setLockedUntil(null);
+        accounts.saveAndFlush(account);
+        assertTrue(resets.createResetToken("STU001", "127.0.0.1").isEmpty());
+        assertFalse(resets.isValidToken(token));
+        assertFalse(resets.resetPassword(token, UUID.randomUUID().toString(), "127.0.0.1"));
+        assertEquals(originalHash, account.getPasswordHash());
+        assertEquals(AccountStatus.LOCKED, account.getAccountStatus());
+    }
+
+    @Test void administratorLockRemovesAutomaticUnlockDeadline() throws Exception {
+        UserAccount account = accounts.findByUniversityId("STU001").orElseThrow();
+        account.setAccountStatus(AccountStatus.LOCKED);
+        account.setLockedUntil(java.time.LocalDateTime.now().plusMinutes(10));
+        accounts.saveAndFlush(account);
+        mvc.perform(post("/admin/users/" + account.getUserId() + "/status").param("status", "LOCKED")
+                .with(user("ADM001").authorities(() -> "ROLE_System Administrator", () -> "MANAGE_USERS")).with(csrf()))
+                .andExpect(redirectedUrl("/admin/users"));
+        assertNull(accounts.findByUniversityId("STU001").orElseThrow().getLockedUntil());
+    }
+
+    @Test void administratorAccountChangeDefersSessionExpiryUntilCommit() throws Exception {
+        UserAccount account = accounts.findByUniversityId("STU001").orElseThrow();
+        String password = UUID.randomUUID().toString(); account.setPasswordHash(encoder.encode(password)); accounts.saveAndFlush(account);
+        var login = mvc.perform(post("/login").param("login", "STU001").param("password", password).with(csrf())).andReturn();
+        var session = (org.springframework.mock.web.MockHttpSession) login.getRequest().getSession(false);
+        assertNotNull(session);
+        mvc.perform(post("/admin/users/" + account.getUserId() + "/status").param("status", "DISABLED")
+                .with(user("ADM001").authorities(() -> "ROLE_System Administrator", () -> "MANAGE_USERS")).with(csrf()))
+                .andExpect(redirectedUrl("/admin/users"));
+        // This test transaction has not committed; a rollback must keep the session usable.
+        mvc.perform(get("/faq").session(session)).andExpect(status().isOk());
+    }
+
     @Test void reportAliasesRequireReportPermission() throws Exception {
         for (String path : new String[]{"/reports", "/reports/export", "/reports/export.csv"}) {
             mvc.perform(get(path).with(user("ADM001").roles("System Administrator")))

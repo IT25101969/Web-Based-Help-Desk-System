@@ -1,0 +1,16 @@
+<!DOCTYPE html><html lang="en" xmlns:th="http://www.thymeleaf.org"><body>
+<th:block th:fragment="header"><header class="public-header">
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <a th:href="@{/}" class="topbar-brand university-brand" aria-label="SLIIT UNI Help Desk home"><span th:replace="~{fragments/university-brand :: logo}"></span><span class="university-service">Help Desk<span>YOUR CAMPUS, CONNECTED.</span></span></a>
+    <nav aria-label="Public navigation"><a th:href="@{/#services}">Services</a><a th:href="@{/#how-it-works}">How it works</a><a th:href="@{/help}">Find answers</a><a class="btn btn-sm" th:href="@{/login}">Sign In <span aria-hidden="true">↗</span></a></nav>
+</header>
+<section th:replace="~{fragments/campus-notices :: notices}"></section></th:block>
+<footer th:fragment="footer" class="public-footer">
+    <div class="footer-grid">
+        <div class="footer-identity"><a th:href="@{/}" aria-label="SLIIT UNI home"><span th:replace="~{fragments/university-brand :: logo}"></span></a><h2>SLIIT UNI Help Desk</h2><p>Campus guidance, answers, and support.<br>One place to connect with the right team.</p></div>
+        <div class="footer-location"><h2>Visit our campus</h2><address><strong>SLIIT Metropolitan Campus</strong><br>16th Floor, BOC Merchant Tower<br>28 St Michaels Rd<br>Colombo 00300</address><a class="map-link" href="https://www.google.com/maps/search/?api=1&amp;query=SLIIT%20Metropolitan%20Campus%2C%2016th%20Floor%2C%20BOC%20Merchant%20Tower%2C%2028%20St%20Michaels%20Rd%2C%20Colombo%2000300" target="_blank" rel="noopener noreferrer">View on Google Maps ↗</a></div>
+        <nav aria-label="Footer navigation"><h2>Useful links</h2><a th:href="@{/help}">Find answers</a><a th:href="@{/login}">Sign in to get help</a><a th:href="@{/privacy}">Privacy information</a><a href="#accessibility">Accessibility</a></nav>
+    </div>
+    <div class="footer-bottom"><p>© <span th:text="${#temporals.year(#temporals.createNow())}">2026</span> SLIIT UNI · Help Desk</p><p id="accessibility">Use keyboard navigation and browser zoom. For alternative support, contact the university’s support office.</p></div>
+</footer>
+</body></html>

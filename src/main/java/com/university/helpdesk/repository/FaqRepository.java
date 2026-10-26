@@ -10,6 +10,11 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 
 public interface FaqRepository extends JpaRepository<Faq, Long> {
+    @Query("SELECT f FROM Faq f LEFT JOIN f.category c WHERE f.status = :status " +
+           "AND (:categoryId IS NULL OR c.categoryId = :categoryId) " +
+           "AND (:q = '' OR LOWER(f.question) LIKE LOWER(CONCAT('%', :q, '%')) OR LOWER(CAST(f.answer AS string)) LIKE LOWER(CONCAT('%', :q, '%'))) ORDER BY f.question")
+    List<Faq> findSuggestions(@Param("status") FaqStatus status, @Param("q") String q,
+            @Param("categoryId") Long categoryId, org.springframework.data.domain.Pageable pageable);
     List<Faq> findByStatusOrderByQuestionAsc(FaqStatus status);
     List<Faq> findByStatusAndCategoryCategoryIdOrderByQuestionAsc(FaqStatus status, Long categoryId);
     List<Faq> findByStatusAndQuestionContainingIgnoreCaseOrderByQuestionAsc(FaqStatus status, String keyword);

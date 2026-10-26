@@ -5,45 +5,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Ticket Queue - Help Desk</title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/css/ticket-queue.css}">
 </head>
-<body>
-<header class="topbar">
-    <a th:href="@{${basePath} + '/dashboard'}" class="topbar-brand">
-        <strong>University</strong> <span>Help Desk</span>
-    </a>
-    <nav class="topbar-nav">
-        <a th:href="@{${basePath} + '/dashboard'}">Dashboard</a>
-        <a th:href="@{${basePath} + '/tickets'}" class="active">Ticket Queue</a>
-        <a th:href="@{/faq}">FAQ</a>
-        <a th:href="@{/notifications}">Notifications</a>
-    </nav>
-    <div class="topbar-user">
-        <form th:action="@{/logout}" method="post" style="display:inline; margin:0;">
-            <button type="submit" class="btn-logout">Logout</button>
-        </form>
-    </div>
-</header>
+<body class="app-page">
+<header th:replace="~{fragments/topbar :: topbar('tickets')}"></header>
 
-<div class="container">
-    <div class="card">
-        <h1>Ticket Queue</h1>
-        <p class="muted">Manage and process assigned and unassigned student support tickets.</p>
+<main class="container queue-page">
+    <div class="page-header page-hero">
+        <div><span class="page-eyebrow">SUPPORT OPERATIONS</span><h1 class="page-title">Ticket queue</h1><p class="page-subtitle">Prioritize, assign, and resolve student support requests from one workspace.</p></div>
+    </div>
+    <section class="card queue-panel">
 
         <!-- Filter Bar -->
-        <form th:action="@{${basePath} + '/tickets'}" method="get" style="margin-bottom: 20px; background: #f8fafc; padding: 16px; border-radius: 8px; border: 1px solid #e2e8f0;">
-            <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); align-items: end;">
+        <form th:action="@{${basePath} + '/tickets'}" method="get" class="surface-toolbar">
+                <div class="wide"><label for="ticket-search">Search tickets</label><input id="ticket-search" type="search" name="q" maxlength="200" th:value="${q}" placeholder="Reference, subject or category"></div>
+                <div><label for="ticket-sort">Sort by</label><select id="ticket-sort" name="sort"><option value="newest" th:selected="${selectedSort == 'newest'}">Newest first</option><option value="oldest" th:selected="${selectedSort == 'oldest'}">Oldest first</option><option value="subject" th:selected="${selectedSort == 'subject'}">Subject A–Z</option></select></div>
+                <div><label for="ticket-size">Per page</label><select id="ticket-size" name="size"><option th:each="n : ${ {10,25,50} }" th:value="${n}" th:text="${n}" th:selected="${ticketPage.size == n}"></option></select></div>
                 <div>
                     <label for="filter-status">Status</label>
                     <select id="filter-status" name="status">
                         <option value="">All Statuses</option>
-                        <option th:each="s : ${statuses}" th:value="${s}" th:text="${s}" th:selected="${s == selectedStatus}"></option>
+                        <option th:each="s : ${statuses}" th:value="${s}" th:text="${#strings.capitalize(#strings.toLowerCase(#strings.replace(s, '_', ' ')))}" th:selected="${s == selectedStatus}"></option>
                     </select>
                 </div>
                 <div>
                     <label for="filter-priority">Priority</label>
                     <select id="filter-priority" name="priority">
                         <option value="">All Priorities</option>
-                        <option th:each="p : ${priorities}" th:value="${p}" th:text="${p}" th:selected="${p == selectedPriority}"></option>
+                        <option th:each="p : ${priorities}" th:value="${p}" th:text="${#strings.capitalize(#strings.toLowerCase(p))}" th:selected="${p == selectedPriority}"></option>
                     </select>
                 </div>
                 <div th:if="${basePath == '/admin'}">
@@ -54,8 +43,8 @@
                     </select>
                 </div>
                 <div th:if="${basePath == '/admin'}">
-                    <label style="display: flex; align-items: center; gap: 8px; margin-top: 24px; cursor: pointer;">
-                        <input type="checkbox" name="unmappedOnly" value="true" th:checked="${selectedUnmappedOnly}" style="width: auto; margin: 0;">
+                    <label class="check-line">
+                        <input type="checkbox" name="unmappedOnly" value="true" th:checked="${selectedUnmappedOnly}">
                         <span>Unmapped Tickets Only</span>
                     </label>
                 </div>
@@ -67,56 +56,28 @@
                         <option value="UNASSIGNED" th:selected="${selectedAssignmentState == 'UNASSIGNED'}">Unassigned Only</option>
                     </select>
                 </div>
-                <div style="display: flex; gap: 8px;">
+                <div class="button-cluster">
                     <button class="btn" type="submit">Filter</button>
-                    <a th:href="@{${basePath} + '/tickets'}" class="btn secondary" style="text-align: center;">Reset</a>
+                    <a th:href="@{${basePath} + '/tickets'}" class="btn secondary">Reset</a>
                 </div>
-            </div>
         </form>
 
-        <!-- Queue Table -->
-        <table>
-            <thead>
-            <tr>
-                <th>Reference</th>
-                <th>Subject</th>
-                <th>Category</th>
-                <th>Department</th>
-                <th>Priority</th>
-                <th>Status</th>
-                <th>Assignee</th>
-                <th>Created</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr th:each="ticket : ${tickets}">
-                <td>
-                    <a th:href="@{${basePath} + '/tickets/' + ${ticket.ticketId}}" th:text="${ticket.referenceNo}" style="font-weight: 600;"></a>
-                </td>
-                <td th:text="${ticket.subject}"></td>
-                <td th:text="${ticket.category != null ? ticket.category.categoryName : 'N/A'}"></td>
-                <td>
-                    <span th:if="${ticket.category != null && ticket.category.department != null}" th:text="${ticket.category.department.departmentName}"></span>
-                    <span th:if="${ticket.category == null || ticket.category.department == null}" class="badge" style="background: #fee2e2; color: #991b1b; font-weight: 600;">Manual routing required</span>
-                </td>
-                <td>
-                    <span class="badge" th:text="${ticket.priority}"></span>
-                </td>
-                <td>
-                    <span class="badge" th:text="${ticket.status}"></span>
-                </td>
-                <td>
-                    <span th:if="${assigneeMap[ticket.ticketId] != null}" th:text="${assigneeMap[ticket.ticketId].assignedToUser.firstName + ' ' + assigneeMap[ticket.ticketId].assignedToUser.lastName}"></span>
-                    <span th:if="${assigneeMap[ticket.ticketId] == null}" class="muted">Unassigned</span>
-                </td>
-                <td th:text="${#temporals.format(ticket.createdDate, 'yyyy-MM-dd HH:mm')}"></td>
-            </tr>
-            <tr th:if="${#lists.isEmpty(tickets)}">
-                <td colspan="8" class="muted" style="text-align: center; padding: 28px;">No tickets found matching current criteria.</td>
-            </tr>
-            </tbody>
-        </table>
-    </div>
-</div>
+        <div class="queue-section-heading"><div><h2>Support requests <span class="queue-count" th:text="${ticketPage.totalElements}"></span></h2><p>Open a ticket to view its conversation, assignments, and progress.</p></div></div>
+        <div class="table-responsive queue-table" tabindex="0" role="region" aria-label="Ticket queue">
+            <table><thead><tr><th scope="col">Ticket</th><th scope="col">Department</th><th scope="col">Priority</th><th scope="col">Status</th><th scope="col">Assignee</th><th scope="col">Created</th><th scope="col">Resolution target</th></tr></thead>
+            <tbody><tr th:each="ticket : ${tickets}">
+                <td class="queue-ticket"><a class="queue-reference" th:href="@{${basePath} + '/tickets/' + ${ticket.ticketId}}" th:text="${ticket.referenceNo}"></a><strong class="queue-subject" th:text="${ticket.subject}"></strong><small th:text="${ticket.category != null ? ticket.category.categoryName : 'No category'}"></small></td>
+                <td><span class="queue-department" th:if="${ticket.category != null and ticket.category.department != null}" th:text="${ticket.category.department.departmentName}"></span><span th:if="${ticket.category == null or ticket.category.department == null}" class="queue-routing">Manual routing required</span></td>
+                <td><span th:class="${'badge badge-priority-' + #strings.toLowerCase(ticket.priority)}" th:text="${#strings.capitalize(#strings.toLowerCase(ticket.priority))}"></span></td>
+                <td><span th:class="${'badge badge-status-' + #strings.toLowerCase(#strings.replace(ticket.status, '_', '-'))}" th:text="${#strings.capitalize(#strings.toLowerCase(#strings.replace(ticket.status, '_', ' ')))}"></span></td>
+                <td><div class="queue-assignee" th:if="${assigneeMap[ticket.ticketId] != null}" th:with="person=${assigneeMap[ticket.ticketId].assignedToUser}"><span class="queue-avatar" aria-hidden="true" th:text="${#strings.toUpperCase(#strings.substring(person.firstName,0,1) + #strings.substring(person.lastName,0,1))}"></span><div><strong th:text="${person.firstName + ' ' + person.lastName}"></strong><small th:text="${person.universityId}"></small></div></div><span th:if="${assigneeMap[ticket.ticketId] == null}" class="queue-unassigned">Unassigned</span></td>
+                <td class="queue-created"><time th:datetime="${ticket.createdDate}" th:text="${#temporals.format(ticket.createdDate,'dd MMM yyyy')}"></time><small th:text="${#temporals.format(ticket.createdDate,'HH:mm')}"></small></td>
+                <td><span th:class="'deadline-pill ' + ${@ticketDeadlines.state(ticket)}" th:text="${@ticketDeadlines.label(ticket)}"></span><small class="deadline-date" th:if="${@ticketDeadlines.state(ticket) != 'complete'}" th:text="${#temporals.format(@ticketDeadlines.dueAt(ticket), 'dd MMM, HH:mm')}"></small></td>
+            </tr><tr th:if="${#lists.isEmpty(tickets)}"><td colspan="7" class="empty-table"><strong>No matching tickets</strong><p>Try another search or reset the filters to view available requests.</p></td></tr></tbody></table>
+        </div>
+        <div th:replace="~{fragments/ticket-pager :: pager}"></div>
+        <p class="form-hint">Resolution targets use elapsed hours from submission and the current priority. Business-hour calendars and automatic escalation are not enabled.</p>
+    </section>
+</main>
 </body>
 </html>

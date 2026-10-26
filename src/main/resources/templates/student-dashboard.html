@@ -5,34 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Dashboard - University Help Desk</title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/css/workspace-polish.css}">
 </head>
-<body>
+<body class="dashboard-page app-page refined-page refined-dashboard">
 
-<header class="topbar">
-    <a th:href="@{/student/dashboard}" class="topbar-brand">
-        <strong>University</strong> <span>Help Desk</span>
-    </a>
-    <nav class="topbar-nav">
-        <a th:href="@{/student/dashboard}" class="active">Dashboard</a>
-        <a th:href="@{/student/tickets}">My Tickets</a>
-        <a th:href="@{/student/tickets/new}">Submit Ticket</a>
-        <a th:href="@{/faq}">FAQ</a>
-        <a th:href="@{/notifications}">
-            Notifications
-            <span th:if="${unreadNotifications != null and unreadNotifications > 0}" class="badge badge-priority-critical" th:text="${unreadNotifications}"></span>
-        </a>
-    </nav>
-    <div class="topbar-user">
-        <span class="user-badge" th:text="${user != null ? user.universityId : 'Student'}">STU001</span>
-        <form th:action="@{/logout}" method="post" style="display:inline; margin:0;">
-            <button type="submit" class="btn-logout">Logout</button>
-        </form>
-    </div>
-</header>
+<header th:replace="~{fragments/topbar :: topbar('dashboard')}"></header>
 
 <main class="container">
-    <div class="page-header">
+    <div class="page-header page-hero">
         <div>
+            <span class="page-eyebrow">YOUR CAMPUS WORKSPACE</span>
             <h1 class="page-title" th:text="${user != null ? 'Welcome back, ' + user.firstName + '!' : 'Student Dashboard'}">Welcome back!</h1>
             <p class="page-subtitle" th:if="${student != null}" th:text="${student.faculty + ' · ' + student.program + ' (Year ' + student.academicYear + ')'}">Computing · Information Technology</p>
             <p class="page-subtitle" th:if="${student == null}">Manage your support inquiries and service requests.</p>
@@ -45,7 +27,7 @@
     </div>
 
     <!-- Statistics Overview Cards -->
-    <div class="grid grid-4" style="margin-bottom: 28px;">
+    <div class="grid grid-4">
         <div class="stat-card primary">
             <div class="stat-label">Total Tickets</div>
             <div class="stat-value" id="stat-total" th:text="${totalTickets != null ? totalTickets : 0}">0</div>
@@ -65,20 +47,23 @@
     </div>
 
     <!-- Quick Action Cards -->
-    <div class="grid grid-3" style="margin-bottom: 28px;">
-        <div class="card" style="margin-bottom: 0;">
-            <h2 class="card-title" style="margin-bottom: 8px;">Submit an Incident</h2>
-            <p class="page-subtitle" style="margin-bottom: 16px;">Report technical glitches, Wi-Fi connectivity drops, system errors or campus facility issues.</p>
+    <div class="grid grid-3">
+        <div class="card feature-card">
+            <span class="feature-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3h8l4 4v14H4V3h4ZM8 11h8M8 15h5M16 3v5h4"/></svg></span>
+            <h2 class="card-title mb-2">Submit an Incident</h2>
+            <p class="page-subtitle mb-3">Report technical glitches, Wi-Fi connectivity drops, system errors or campus facility issues.</p>
             <a th:href="@{/student/tickets/new(type='INCIDENT')}" class="btn btn-sm">Report Incident</a>
         </div>
-        <div class="card" style="margin-bottom: 0;">
-            <h2 class="card-title" style="margin-bottom: 8px;">Request a Service</h2>
-            <p class="page-subtitle" style="margin-bottom: 16px;">Request software installations, password resets, academic letters, or library credentials.</p>
+        <div class="card feature-card">
+            <span class="feature-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m14 4 6 6-10 10H4v-6L14 4ZM12 6l6 6M4 20l5-1"/></svg></span>
+            <h2 class="card-title mb-2">Request a Service</h2>
+            <p class="page-subtitle mb-3">Request software installations, password resets, academic letters, or library credentials.</p>
             <a th:href="@{/student/tickets/new(type='SERVICE_REQUEST')}" class="btn btn-sm secondary">Request Service</a>
         </div>
-        <div class="card" style="margin-bottom: 0;">
-            <h2 class="card-title" style="margin-bottom: 8px;">Knowledge Base / FAQs</h2>
-            <p class="page-subtitle" style="margin-bottom: 16px;">Search university self-help guides, connection manuals, and answers to common student questions.</p>
+        <div class="card feature-card">
+            <span class="feature-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h7l2 2 2-2h7v14h-7l-2 2-2-2H3V5ZM12 7v14"/></svg></span>
+            <h2 class="card-title mb-2">Knowledge Base / FAQs</h2>
+            <p class="page-subtitle mb-3">Search university self-help guides, connection manuals, and answers to common student questions.</p>
             <a th:href="@{/faq}" class="btn btn-sm secondary">Browse FAQs</a>
         </div>
     </div>
@@ -90,51 +75,10 @@
             <a th:href="@{/student/tickets}" class="btn btn-sm secondary">View All Tickets</a>
         </div>
 
-        <div th:if="${recentTickets != null and !#lists.isEmpty(recentTickets)}" class="table-responsive">
-            <table>
-                <thead>
-                <tr>
-                    <th>Reference</th>
-                    <th>Type</th>
-                    <th>Subject</th>
-                    <th>Category</th>
-                    <th>Priority</th>
-                    <th>Status</th>
-                    <th>Submitted</th>
-                    <th>Action</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr th:each="ticket : ${recentTickets}">
-                    <td>
-                        <a th:href="@{/student/tickets/{id}(id=${ticket.ticketId})}"
-                           th:text="${ticket.referenceNo}"
-                           style="font-family: monospace; font-weight: 700;">HD-20260915-ABCD</a>
-                    </td>
-                    <td>
-                        <span class="badge badge-type" th:text="${ticket.ticketType}">INCIDENT</span>
-                    </td>
-                    <td th:text="${ticket.subject}" style="font-weight: 600;">Issue subject</td>
-                    <td th:text="${ticket.category != null ? ticket.category.categoryName : 'N/A'}">IT Support</td>
-                    <td>
-                        <span th:class="'badge badge-priority-' + ${#strings.toLowerCase(ticket.priority)}"
-                              th:text="${ticket.priority}">MEDIUM</span>
-                    </td>
-                    <td>
-                        <span th:class="'badge badge-status-' + ${#strings.replace(#strings.toLowerCase(ticket.status),'_','-')}"
-                              th:text="${ticket.status}">NEW</span>
-                    </td>
-                    <td th:text="${#temporals.format(ticket.createdDate, 'yyyy-MM-dd HH:mm')}" class="text-muted">2026-09-15 10:30</td>
-                    <td>
-                        <a th:href="@{/student/tickets/{id}(id=${ticket.ticketId})}" class="btn btn-sm secondary">Details</a>
-                    </td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
+        <div th:if="${recentTickets != null and !#lists.isEmpty(recentTickets)}"><div th:replace="~{fragments/student-tickets :: listing(${recentTickets}, false)}"></div></div>
 
         <div th:if="${recentTickets == null or #lists.isEmpty(recentTickets)}" class="empty-state">
-            <div class="empty-state-icon">📂</div>
+            <div class="empty-state-icon">&#9636;</div>
             <div class="empty-state-title">No tickets submitted yet</div>
             <p>You haven't submitted any incidents or service requests. Need assistance with anything?</p>
             <a th:href="@{/student/tickets/new}" class="btn">+ Submit Your First Ticket</a>

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>IT Asset Management - University Help Desk</title><link rel="stylesheet" th:href="@{/css/app.css}"><link rel="stylesheet" th:href="@{/css/assets.css}"></head>
+<body class="app-page"><header th:replace="~{fragments/topbar :: topbar('assets')}"></header>
+<main class="container">
+    <section class="workspace-hero"><div><div class="section-eyebrow">CAMPUS EQUIPMENT</div><h1>Every asset. A clearer picture.</h1><p>Keep equipment organized, track its condition, and connect support requests to the right asset.</p></div><a class="btn" th:href="@{/admin/assets/new}">+ Register asset</a></section>
+    <div th:if="${success}" class="alert success" role="status" th:text="${success}"></div>
+    <div th:if="${error}" class="alert error" role="alert" th:text="${error}"></div>
+    <section class="asset-stats" aria-label="Inventory summary">
+        <div class="card"><span class="section-eyebrow">TOTAL ASSETS</span><strong th:text="${totalAssets}"></strong><span>Registered equipment</span></div>
+        <div class="card"><span class="section-eyebrow">WORKING</span><strong th:text="${workingAssets}"></strong><span>Available for campus use</span></div>
+        <div class="card"><span class="section-eyebrow">MAINTENANCE</span><strong th:text="${maintenanceAssets}"></strong><span>Receiving attention</span></div>
+        <div class="card"><span class="section-eyebrow">RETIRED</span><strong th:text="${retiredAssets}"></strong><span>History preserved</span></div>
+    </section>
+    <section class="card"><div class="section-heading"><div><div class="section-eyebrow">YOUR INVENTORY</div><h2>IT assets</h2></div><span class="badge" th:text="${assetPage.totalElements + ' results'}"></span></div>
+        <form method="get" th:action="@{/admin/assets}" class="asset-filters">
+            <div><label for="asset-search">Search inventory</label><input type="search" id="asset-search" name="q" th:value="${q}" maxlength="200" placeholder="Tag, name, serial number or location"></div>
+            <div><label for="filter-type">Equipment type</label><select id="filter-type" name="type"><option value="">All types</option><option th:each="t : ${assetTypes}" th:value="${t}" th:text="${t.label}" th:selected="${t == selectedType}"></option></select></div>
+            <div><label for="filter-condition">Condition</label><select id="filter-condition" name="condition"><option value="">All conditions</option><option th:each="c : ${assetConditions}" th:value="${c}" th:text="${c.label}" th:selected="${c == selectedCondition}"></option></select></div>
+            <div><label for="filter-department">Department</label><select id="filter-department" name="departmentId"><option value="">All departments</option><option th:each="d : ${departments}" th:value="${d.departmentId}" th:text="${d.departmentName}" th:selected="${d.departmentId == selectedDepartment}"></option></select></div>
+            <div class="actions"><button class="btn" type="submit">Filter</button><a class="btn secondary" th:href="@{/admin/assets}">Reset</a></div>
+        </form>
+        <div th:if="${assetPage.empty}" class="asset-empty"><div class="asset-empty-icon" aria-hidden="true">▣</div><h3 th:text="${totalAssets == 0 ? 'Build your campus inventory' : 'No matching equipment'}"></h3><p class="muted" th:text="${totalAssets == 0 ? 'Register your first asset to track equipment and its support history.' : 'Try another search or clear your filters.'}"></p><a class="btn secondary" th:href="@{/admin/assets/new}">Register an asset</a></div>
+        <div th:unless="${assetPage.empty}" class="table-responsive" tabindex="0" role="region" aria-label="Asset inventory">
+            <table><thead><tr><th>Asset</th><th>Type &amp; location</th><th>Department</th><th>Condition</th><th>Assigned to</th><th>Actions</th></tr></thead>
+                <tbody><tr th:each="asset : ${assetPage.content}">
+                    <td><a class="table-link" th:href="@{/admin/assets/{id}(id=${asset.assetId})}" th:text="${asset.assetName}"></a><span class="asset-secondary" th:text="${asset.assetTag}"></span></td>
+                    <td><span th:text="${asset.assetType.label}"></span><span class="asset-secondary" th:text="${asset.location}"></span></td>
+                    <td th:text="${asset.department.departmentName}"></td>
+                    <td><span th:class="${'asset-condition condition-' + #strings.toLowerCase(asset.condition)}" th:text="${asset.condition.label}"></span></td>
+                    <td th:text="${asset.assignedUser == null ? 'Shared equipment' : asset.assignedUser.universityId}"></td>
+                    <td><div class="actions"><a class="btn secondary btn-sm" th:href="@{/admin/assets/{id}(id=${asset.assetId})}">View</a><a class="btn secondary btn-sm" th:href="@{/admin/assets/{id}/edit(id=${asset.assetId})}">Edit</a></div></td>
+                </tr></tbody>
+            </table>
+        </div>
+        <nav th:if="${assetPage.totalPages > 1}" class="asset-pagination" aria-label="Asset pages">
+            <a th:if="${assetPage.hasPrevious()}" class="btn secondary btn-sm" th:href="@{/admin/assets(q=${q},type=${selectedType},condition=${selectedCondition},departmentId=${selectedDepartment},page=${assetPage.number - 1})}">← Previous</a>
+            <span th:text="${'Page ' + (assetPage.number + 1) + ' of ' + assetPage.totalPages}"></span>
+            <a th:if="${assetPage.hasNext()}" class="btn secondary btn-sm" th:href="@{/admin/assets(q=${q},type=${selectedType},condition=${selectedCondition},departmentId=${selectedDepartment},page=${assetPage.number + 1})}">Next →</a>
+        </nav>
+    </section>
+</main></body></html>

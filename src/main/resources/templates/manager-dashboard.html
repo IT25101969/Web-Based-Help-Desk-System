@@ -5,30 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Department Manager Dashboard - University Help Desk</title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/css/workspace-polish.css}">
 </head>
-<body>
+<body class="dashboard-page app-page refined-page refined-dashboard">
 
-<header class="topbar">
-    <a th:href="@{/manager/dashboard}" class="topbar-brand">
-        <strong>University</strong> <span>Help Desk</span>
-    </a>
-    <nav class="topbar-nav">
-        <a th:href="@{/manager/dashboard}" class="active">Dashboard</a>
-        <a th:href="@{/manager/tickets}">Ticket Queue</a>
-        <a th:href="@{/faq}">FAQ</a>
-        <a th:href="@{/notifications}">Notifications</a>
-    </nav>
-    <div class="topbar-user">
-        <span class="user-badge">Manager</span>
-        <form th:action="@{/logout}" method="post" style="display:inline; margin:0;">
-            <button type="submit" class="btn-logout">Logout</button>
-        </form>
-    </div>
-</header>
+<header th:replace="~{fragments/topbar :: topbar('dashboard')}"></header>
 
 <main class="container">
-    <div class="page-header">
+    <div class="page-header page-hero">
         <div>
+            <span class="page-eyebrow">YOUR CAMPUS WORKSPACE</span>
             <h1 class="page-title">Department Manager Dashboard</h1>
             <p class="page-subtitle">Oversee departmental ticket handling, workloads, staff assignments, and escalations.</p>
         </div>
@@ -37,18 +23,18 @@
         </div>
     </div>
 
-    <div class="grid grid-3" style="margin-bottom: 28px;">
-        <div class="card">
+    <div class="grid grid-3">
+        <div class="card feature-card"><span class="feature-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3h8l4 4v14H4V3h4ZM8 11h8M8 15h5M16 3v5h4"/></svg></span>
             <h2 class="card-title">Ticket Handling &amp; Queue</h2>
             <p class="muted">Review tickets routed to your department, reassign staff, and track progress.</p>
             <a th:href="@{/manager/tickets}" class="btn btn-sm">Open Queue &rarr;</a>
         </div>
-        <div class="card">
+        <div class="card feature-card"><span class="feature-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4"/></svg></span>
             <h2 class="card-title">Notification Center</h2>
             <p class="muted">Check status alerts, assignment updates, and priority notifications.</p>
             <a th:href="@{/notifications}" class="btn btn-sm secondary">View Notifications &rarr;</a>
         </div>
-        <div class="card">
+        <div class="card feature-card"><span class="feature-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h7l2 2 2-2h7v14h-7l-2 2-2-2H3V5ZM12 7v14"/></svg></span>
             <h2 class="card-title">Help &amp; Knowledge Base</h2>
             <p class="muted">Access published university guides, student FAQ articles, and service documentation.</p>
             <a th:href="@{/faq}" class="btn btn-sm secondary">Browse FAQs &rarr;</a>

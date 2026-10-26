@@ -37,7 +37,11 @@ public class FeedbackService {
             throw new IllegalArgumentException("Rating must be between 1 and 5.");
         }
 
-        Ticket ticket = ticketRepository.findById(ticketId)
+        if (comment != null && comment.trim().length() > 1000) {
+            throw new IllegalArgumentException("Feedback comment cannot exceed 1000 characters.");
+        }
+
+        Ticket ticket = ticketRepository.findByIdWithLock(ticketId)
                 .orElseThrow(() -> new IllegalArgumentException("Ticket was not found."));
 
         UserAccount student = userAccountRepository.findByUniversityId(universityId)

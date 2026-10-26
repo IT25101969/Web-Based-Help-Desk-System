@@ -3,199 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FAQ Search Analytics | University Help Desk</title>
+    <title>Search Analytics | University Help Desk</title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
-    <style>
-        .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 22px; }
-        .stat-card { background: #fff; border-radius: 12px; padding: 18px; box-shadow: 0 4px 14px rgba(15,23,42,.06); border-top: 4px solid #2563eb; }
-        .stat-card.alert-stat { border-top-color: #e11d48; }
-        .stat-number { font-size: 2rem; font-weight: 800; color: #0f172a; margin: 4px 0; }
-        .stat-label { color: #64748b; font-size: 0.9rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-        .gap-highlight { background: #fff1f2; border: 1px solid #fecdd3; border-radius: 8px; padding: 14px; margin-bottom: 16px; }
-        .zero-badge { background: #fee2e2; color: #991b1b; font-weight: 700; padding: 2px 8px; border-radius: 999px; font-size: 12px; }
-    </style>
+    <link rel="stylesheet" th:href="@{/css/activity-logs.css}">
+    <link rel="stylesheet" th:href="@{/css/search-analytics.css}">
 </head>
-<body>
-<header class="topbar">
-    <a th:href="@{/admin/dashboard}" class="topbar-brand">
-        <strong>University</strong> <span>Help Desk</span>
-    </a>
-    <nav class="topbar-nav">
-        <a th:href="@{/admin/dashboard}">Dashboard</a>
-        <a th:href="@{/admin/tickets}">Tickets</a>
-        <a th:href="@{/admin/reports}">Reports</a>
-        <a th:href="@{/admin/users}">Users</a>
-        <a th:href="@{/admin/faqs}">FAQ Admin</a>
-        <a th:href="@{/admin/faqs/search-analytics}" class="active">Search Analytics</a>
-        <a th:href="@{/admin/monitoring}">Monitoring</a>
-        <a th:href="@{/admin/activity-logs}">Logs</a>
-        <a th:href="@{/notifications}">Notifications</a>
-    </nav>
-    <div class="topbar-user">
-        <span class="user-badge">Admin</span>
-        <form th:action="@{/logout}" method="post" style="display: inline; margin: 0;">
-            <button type="submit" class="btn-logout">Logout</button>
-        </form>
-    </div>
-</header>
-
-<div class="container">
-    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; margin-bottom: 18px;">
-        <div>
-            <h1 style="margin: 0 0 6px;">Knowledge Base Search Telemetry</h1>
-            <p class="muted" style="margin: 0;">Analyze user search intent, frequent topics, and discover missing FAQ documentation.</p>
+<body class="app-page">
+<header th:replace="~{fragments/topbar :: topbar('analytics')}"></header>
+<main class="container analytics-page">
+    <div class="page-header page-hero analytics-hero">
+        <div><span class="page-eyebrow">KNOWLEDGE BASE / INSIGHTS</span>
+            <h1 class="page-title">Search analytics</h1>
+            <p class="page-subtitle">See what your campus is searching for and where clearer guidance can help.</p>
         </div>
-        <div>
-            <a th:href="@{/admin/faqs}" class="btn secondary">&larr; Back to FAQ List</a>
-        </div>
+        <a th:href="@{/admin/faqs}" class="btn secondary">Manage FAQs <span aria-hidden="true">&rarr;</span></a>
     </div>
-
-    <!-- Stat Cards Overview -->
-    <div class="stat-grid">
-        <div class="stat-card">
-            <div class="stat-label">Total Searches Logged</div>
-            <div class="stat-number" th:text="${analytics.totalSearches}">0</div>
-            <div class="muted" style="font-size: 13px;">Keywords & category filters</div>
-        </div>
-        <div class="stat-card alert-stat">
-            <div class="stat-label">Zero-Result Searches</div>
-            <div class="stat-number" style="color: #e11d48;" th:text="${analytics.zeroResultSearches}">0</div>
-            <div class="muted" style="font-size: 13px;">Unresolved queries with no matching answers</div>
-        </div>
-    </div>
-
-    <!-- Empty State -->
-    <div class="card" th:if="${analytics.totalSearches == 0}">
-        <h2>No Search Events Recorded Yet</h2>
-        <p class="muted">Search events will be automatically logged when students or staff search the FAQ or filter by category.</p>
-        <a th:href="@{/faq}" class="btn" target="_blank">Visit FAQ Page</a>
-    </div>
-
+    <section class="analytics-metrics" aria-label="Search overview">
+        <div class="analytics-metric"><span class="analytics-metric-label">Total searches</span><strong th:text="${analytics.totalSearches}">0</strong><small>Keyword searches and category filters</small><span class="analytics-metric-icon" aria-hidden="true">&#8981;</span></div>
+        <div class="analytics-metric"><span class="analytics-metric-label">Searches with matches</span><strong th:text="${analytics.totalSearches - analytics.zeroResultSearches}">0</strong><small>At least one published FAQ found</small><span class="analytics-metric-icon matched" aria-hidden="true">&#10003;</span></div>
+        <div class="analytics-metric"><span class="analytics-metric-label">No results</span><strong class="analytics-warning-number" th:text="${analytics.zeroResultSearches}">0</strong><small>Searches without a matching FAQ</small><span class="analytics-metric-icon attention" aria-hidden="true">!</span></div>
+    </section>
+    <p class="analytics-scope">Overview covers all recorded searches. Ranked lists show up to 10 topics or categories.</p>
+    <section class="card audit-panel" th:if="${analytics.totalSearches == 0}">
+        <div class="audit-empty"><span class="audit-empty-icon" aria-hidden="true">&#8981;</span><h2>No searches recorded yet</h2><p>Search activity appears here when someone searches the FAQ or selects a category.</p><a th:href="@{/faq}" class="btn secondary">Explore the FAQ</a></div>
+    </section>
     <div th:if="${analytics.totalSearches > 0}">
-        <!-- Content Gaps Section (Most critical for administrators) -->
-        <div class="card">
-            <div class="gap-highlight">
-                <h3 style="margin: 0 0 6px; color: #9f1239;">Content Gaps (Zero-Result Search Topics)</h3>
-                <p style="margin: 0; color: #475569; font-size: 14px;">
-                    These terms were frequently searched by users but returned <strong>0 results</strong>. Create new FAQ entries to address these common user pain points.
-                </p>
+        <section class="card audit-panel analytics-gaps">
+            <div class="analytics-section-heading"><span class="audit-section-icon gap-icon" aria-hidden="true">!</span><div><h2>Guidance to improve <span class="audit-count" th:text="${#lists.size(analytics.contentGaps)} + (${#lists.size(analytics.contentGaps) == 1} ? ' topic' : ' topics')">0 topics</span></h2><p>Search terms that returned no results. Review these topics when adding new FAQs.</p></div></div>
+            <div class="analytics-inline-empty" th:if="${#lists.isEmpty(analytics.contentGaps)}"><span aria-hidden="true">&#10003;</span> No zero-result search topics recorded.</div>
+            <div th:unless="${#lists.isEmpty(analytics.contentGaps)}" class="table-responsive analytics-table" tabindex="0" role="region" aria-label="Search topics without results">
+                <table><thead><tr><th scope="col">Search topic</th><th scope="col">Searches without matches</th><th scope="col">Next step</th></tr></thead><tbody>
+                <tr th:each="gap : ${analytics.contentGaps}"><td><strong th:text="${gap.displayTerm}"></strong><small>Keyword search</small></td><td><span class="analytics-pill no-results" th:text="${gap.searchCount} + (${gap.searchCount == 1} ? ' search' : ' searches')"></span></td><td><a th:href="@{/admin/faqs} + '#newQuestion'" class="btn secondary analytics-small-button">Create FAQ <span aria-hidden="true">&rarr;</span></a></td></tr>
+                </tbody></table>
             </div>
-
-            <div th:if="${#lists.isEmpty(analytics.contentGaps)}" class="muted">
-                Great news! There are currently no recurring zero-result search topics.
-            </div>
-
-            <table th:if="${!#lists.isEmpty(analytics.contentGaps)}">
-                <thead>
-                <tr>
-                    <th>Unresolved Search Query</th>
-                    <th>Normalized Term</th>
-                    <th>Times Searched</th>
-                    <th>Action</th>
+        </section>
+        <div class="analytics-insights">
+            <section class="card audit-panel">
+                <div class="analytics-section-heading"><span class="audit-section-icon" aria-hidden="true">&#8981;</span><div><h2>Popular search topics</h2><p>Most searched keywords and their matching results.</p></div></div>
+                <p th:if="${#lists.isEmpty(analytics.topSearchTerms)}" class="analytics-inline-empty">No keyword searches recorded yet.</p>
+                <div th:unless="${#lists.isEmpty(analytics.topSearchTerms)}" class="table-responsive analytics-table analytics-topics" tabindex="0" role="region" aria-label="Popular search topics">
+                    <table><thead><tr><th scope="col">Topic</th><th scope="col">Searches</th><th scope="col">No results</th><th scope="col">Avg. matches</th></tr></thead><tbody>
+                    <tr th:each="term, rank : ${analytics.topSearchTerms}"><td><div class="analytics-ranked-topic"><span class="analytics-rank" th:text="${rank.count}"></span><strong th:text="${term.displayTerm}"></strong></div></td><td th:text="${term.searchCount}"></td><td><span class="analytics-pill" th:classappend="${term.zeroResultCount > 0 ? 'no-results' : 'neutral'}" th:text="${term.zeroResultCount}"></span></td><td th:text="${#numbers.formatDecimal(term.avgResultCount, 1, 1)}"></td></tr>
+                    </tbody></table>
+                </div>
+            </section>
+            <section class="card audit-panel">
+                <div class="analytics-section-heading"><span class="audit-section-icon" aria-hidden="true">&#9776;</span><div><h2>Category interest</h2><p>Category selections as a share of all recorded searches.</p></div></div>
+                <p th:if="${#lists.isEmpty(analytics.categoryDistribution)}" class="analytics-inline-empty">No category filters recorded yet.</p>
+                <ul class="analytics-category-list" th:unless="${#lists.isEmpty(analytics.categoryDistribution)}">
+                    <li th:each="cat : ${analytics.categoryDistribution}"><div><strong th:text="${cat.categoryName}"></strong><span th:text="${cat.searchCount} + (${cat.searchCount == 1} ? ' search' : ' searches')"></span></div><div class="analytics-category-track" aria-hidden="true"><span th:style="'width:' + ${100.0 * cat.searchCount / analytics.totalSearches} + '%'"></span></div></li>
+                </ul>
+            </section>
+        </div>
+        <section class="card audit-panel">
+            <div class="analytics-section-heading"><span class="audit-section-icon" aria-hidden="true">&#9719;</span><div><h2>Recent search activity <span class="audit-count" th:text="${#lists.size(analytics.recentSearches)} + (${#lists.size(analytics.recentSearches) == 1} ? ' event' : ' events')"></span></h2><p>The latest 50 searches, including category filters and anonymous visitors.</p></div></div>
+            <p th:if="${#lists.isEmpty(analytics.recentSearches)}" class="analytics-inline-empty">No recent searches recorded.</p>
+            <div th:unless="${#lists.isEmpty(analytics.recentSearches)}" class="table-responsive analytics-table analytics-recent" tabindex="0" role="region" aria-label="Recent FAQ search activity">
+                <table><thead><tr><th scope="col">Date &amp; time</th><th scope="col">Search topic</th><th scope="col">Category</th><th scope="col">Results</th><th scope="col">Searched by</th></tr></thead><tbody>
+                <tr th:each="log : ${analytics.recentSearches}">
+                    <td><time th:datetime="${log.searchedAt}" th:text="${#temporals.format(log.searchedAt, 'dd MMM yyyy')}"></time><small th:text="${#temporals.format(log.searchedAt, 'HH:mm:ss')}"></small></td>
+                    <td><strong th:text="${log.query != null ? log.query : 'Category filter only'}"></strong><small th:text="${log.query != null ? 'Keyword search' : 'Browse by category'}"></small></td>
+                    <td><span class="analytics-category-name" th:text="${log.category != null ? log.category.categoryName : 'All categories'}"></span></td>
+                    <td><span class="analytics-pill" th:classappend="${log.resultsCount == 0 ? 'no-results' : 'matched-results'}" th:text="${log.resultsCount == 0 ? 'No results' : log.resultsCount + (log.resultsCount == 1 ? ' match' : ' matches')}"></span></td>
+                    <td><div th:if="${log.user != null}" class="audit-actor"><span class="audit-avatar" aria-hidden="true" th:text="${#strings.toUpperCase(#strings.substring(log.user.firstName,0,1) + #strings.substring(log.user.lastName,0,1))}"></span><div><strong th:text="${log.user.firstName + ' ' + log.user.lastName}"></strong><small th:text="${log.user.universityId}"></small></div></div><span th:if="${log.user == null}" class="analytics-anonymous">Anonymous visitor</span></td>
                 </tr>
-                </thead>
-                <tbody>
-                <tr th:each="gap : ${analytics.contentGaps}">
-                    <td><strong th:text="${gap.displayTerm}"></strong></td>
-                    <td class="muted"><code th:text="${gap.normalizedTerm}"></code></td>
-                    <td><span class="zero-badge" th:text="${gap.searchCount} + ' searches (0 results)'"></span></td>
-                    <td>
-                        <a th:href="@{/admin/faqs}" class="btn" style="font-size: 12px; padding: 4px 10px;">+ Create FAQ</a>
-                    </td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <div class="grid grid-2">
-            <!-- Top Search Terms -->
-            <div class="card">
-                <h2 style="margin-top: 0;">Top Search Topics</h2>
-                <div th:if="${#lists.isEmpty(analytics.topSearchTerms)}" class="muted">No keyword searches logged yet.</div>
-                <table th:if="${!#lists.isEmpty(analytics.topSearchTerms)}">
-                    <thead>
-                    <tr>
-                        <th>Search Term</th>
-                        <th>Searches</th>
-                        <th>Zero Results</th>
-                        <th>Avg Matches</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr th:each="term : ${analytics.topSearchTerms}">
-                        <td><strong th:text="${term.displayTerm}"></strong></td>
-                        <td th:text="${term.searchCount}"></td>
-                        <td>
-                            <span th:if="${term.zeroResultCount > 0}" class="zero-badge" th:text="${term.zeroResultCount}"></span>
-                            <span th:if="${term.zeroResultCount == 0}" class="muted">0</span>
-                        </td>
-                        <td th:text="${#numbers.formatDecimal(term.avgResultCount, 1, 1)}"></td>
-                    </tr>
-                    </tbody>
-                </table>
+                </tbody></table>
             </div>
-
-            <!-- Category Distribution -->
-            <div class="card">
-                <h2 style="margin-top: 0;">Category Interest Distribution</h2>
-                <div th:if="${#lists.isEmpty(analytics.categoryDistribution)}" class="muted">No category filters logged yet.</div>
-                <table th:if="${!#lists.isEmpty(analytics.categoryDistribution)}">
-                    <thead>
-                    <tr>
-                        <th>Category</th>
-                        <th>Filter Count</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr th:each="cat : ${analytics.categoryDistribution}">
-                        <td><strong th:text="${cat.categoryName}"></strong></td>
-                        <td th:text="${cat.searchCount}"></td>
-                    </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Recent Search Activity Log -->
-        <div class="card">
-            <h2 style="margin-top: 0;">Recent Search Activity (Last 50)</h2>
-            <div th:if="${#lists.isEmpty(analytics.recentSearches)}" class="muted">No recent searches logged.</div>
-            <div th:if="${!#lists.isEmpty(analytics.recentSearches)}" style="overflow-x: auto;">
-                <table>
-                    <thead>
-                    <tr>
-                        <th>Timestamp</th>
-                        <th>Search Query</th>
-                        <th>Category</th>
-                        <th>Results</th>
-                        <th>User</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr th:each="log : ${analytics.recentSearches}">
-                        <td class="muted" style="font-size: 13px;" th:text="${#temporals.format(log.searchedAt, 'yyyy-MM-dd HH:mm:ss')}"></td>
-                        <td>
-                            <strong th:if="${log.query != null}" th:text="${log.query}"></strong>
-                            <span th:if="${log.query == null}" class="muted">(Category filter only)</span>
-                        </td>
-                        <td>
-                            <span th:if="${log.category != null}" class="badge" th:text="${log.category.categoryName}"></span>
-                            <span th:if="${log.category == null}" class="muted">All Categories</span>
-                        </td>
-                        <td>
-                            <span th:if="${log.resultsCount == 0}" class="zero-badge">0 results</span>
-                            <span th:if="${log.resultsCount > 0}" th:text="${log.resultsCount} + ' results'"></span>
-                        </td>
-                        <td class="muted" style="font-size: 13px;">
-                            <span th:if="${log.user != null}" th:text="${log.user.universityId}"></span>
-                            <span th:if="${log.user == null}">Anonymous</span>
-                        </td>
-                    </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
+            <p class="analytics-footnote">Matching results refer to published FAQs available at the time of each search.</p>
+        </section>
     </div>
-</div>
+</main>
 </body>
 </html>

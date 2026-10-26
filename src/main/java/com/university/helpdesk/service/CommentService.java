@@ -53,6 +53,9 @@ public class CommentService {
         if (text == null || text.isBlank()) {
             throw new IllegalArgumentException("Comment cannot be empty.");
         }
+        if (text.length() > 20000) {
+            throw new IllegalArgumentException("Comment must be 20,000 characters or fewer.");
+        }
 
         Ticket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new IllegalArgumentException("Ticket was not found."));
@@ -90,6 +93,7 @@ public class CommentService {
                 );
             } else {
                 assignmentRepository.findFirstByTicketTicketIdAndStatusOrderByAssignedDateDesc(ticketId, AssignmentStatus.ACTIVE)
+                        .filter(active -> ticketService.canReceiveSupportNotification(ticket, active.getAssignedToUser()))
                         .ifPresent(active -> {
                             notificationService.notifyUser(
                                     active.getAssignedToUser(),

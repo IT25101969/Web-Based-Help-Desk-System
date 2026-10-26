@@ -3,97 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Activity Logs</title>
+    <title>Audit Trail · SLIIT UNI Help Desk</title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/css/activity-logs.css}">
 </head>
-<body>
-<header class="topbar">
-    <a th:href="@{/admin/dashboard}" class="topbar-brand">
-        <strong>University</strong> <span>Help Desk</span>
-    </a>
-    <nav class="topbar-nav">
-        <a th:href="@{/admin/dashboard}">Dashboard</a>
-        <a th:href="@{/admin/tickets}">Tickets</a>
-        <a th:href="@{/admin/reports}">Reports</a>
-        <a th:href="@{/admin/users}">Users</a>
-        <a th:href="@{/admin/faqs}">FAQ Admin</a>
-        <a th:href="@{/admin/monitoring}">Monitoring</a>
-        <a th:href="@{/admin/activity-logs}" class="active">Logs</a>
-        <a th:href="@{/notifications}">Notifications</a>
-    </nav>
-    <div class="topbar-user">
-        <span class="user-badge">Admin</span>
-        <form th:action="@{/logout}" method="post" style="display: inline; margin: 0;">
-            <button type="submit" class="btn-logout">Logout</button>
+<body class="app-page">
+<header th:replace="~{fragments/topbar :: topbar('logs')}"></header>
+<main class="container audit-page" id="main-content">
+    <div class="audit-heading">
+        <div><p class="audit-eyebrow">ADMINISTRATION / GOVERNANCE</p><h1>Audit trail</h1><p class="muted">A clear record of important actions across the help desk.</p></div>
+        <a class="btn secondary" th:href="@{/admin/activity-logs/export.csv(action=${selectedAction},entityType=${selectedEntityType},search=${search},start=${start},end=${end})}">
+            <svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12m0 0 5-5m-5 5-5-5M4 21h16"/></svg> Export CSV
+        </a>
+    </div>
+    <div th:if="${error}" class="alert error" role="alert" th:text="${error}"></div>
+
+    <section class="audit-metrics" aria-label="Audit overview">
+        <div><span>Total events</span><strong th:text="${totalEvents}">0</strong><small>Complete retained audit trail</small></div>
+        <div><span><i class="audit-dot today"></i> Today</span><strong th:text="${todayEvents}">0</strong><small>Events since midnight</small></div>
+        <div><span>Action types</span><strong th:text="${actionCount}">0</strong><small>Distinct recorded activities</small></div>
+        <div><span><i class="audit-dot security"></i> Security events</span><strong th:text="${securityEvents}">0</strong><small>Login, lock and password activity</small></div>
+    </section>
+
+    <section class="card audit-panel" aria-labelledby="filters-title">
+        <div class="audit-section-heading"><div class="audit-section-icon" aria-hidden="true"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 5h16M7 12h10M10 19h4"/></svg></div><div><h2 id="filters-title">Find an event</h2><p class="muted">Narrow the audit trail by actor, activity, resource, or date.</p></div></div>
+        <form method="get" th:action="@{/admin/activity-logs}" class="audit-filters">
+            <div class="audit-field audit-search"><label for="audit-search">Actor</label><input type="search" id="audit-search" name="search" maxlength="150" th:value="${search}" placeholder="University ID or name"><small>Searches the person who performed the action.</small></div>
+            <div class="audit-field"><label for="audit-action">Action</label><select id="audit-action" name="action"><option value="">All actions</option><option th:each="a : ${actions}" th:value="${a}" th:text="${#strings.capitalize(#strings.toLowerCase(#strings.replace(a,'_',' ')))}" th:selected="${a == selectedAction}"></option></select></div>
+            <div class="audit-field"><label for="audit-entity">Resource</label><select id="audit-entity" name="entityType"><option value="">All resources</option><option th:each="e : ${entityTypes}" th:value="${e}" th:text="${#strings.capitalize(#strings.toLowerCase(#strings.replace(e,'_',' ')))}" th:selected="${e == selectedEntityType}"></option></select></div>
+            <div class="audit-field"><label for="audit-start">From date</label><input type="date" id="audit-start" name="start" th:value="${start}"></div>
+            <div class="audit-field"><label for="audit-end">To date</label><input type="date" id="audit-end" name="end" th:value="${end}"></div>
+            <div class="audit-field"><label for="audit-size">Rows per page</label><select id="audit-size" name="size"><option th:each="n : ${ {10,25,50,100} }" th:value="${n}" th:text="${n}" th:selected="${n == size}"></option></select></div>
+            <div class="audit-filter-actions"><button class="btn" type="submit">Apply filters</button><a th:href="@{/admin/activity-logs}" class="audit-reset">Clear all</a></div>
         </form>
-    </div>
-</header>
+    </section>
 
-<div class="container">
-    <div th:if="${error}" class="alert error" th:text="${error}"></div>
-
-    <div class="card">
-        <h1>Audit &amp; Activity Logs</h1>
-        <form method="get" th:action="@{/admin/activity-logs}">
-            <div class="grid grid-2">
-                <label>Filter by Action
-                    <select name="action">
-                        <option value="">All Actions</option>
-                        <option th:each="a : ${actions}" th:value="${a}" th:text="${a}"
-                                th:selected="${selectedAction != null and selectedAction == a}">
-                        </option>
-                    </select>
-                </label>
-                <label>Search User (University ID or Name)
-                    <input name="search" th:value="${search}" placeholder="e.g. ADM001 or John">
-                </label>
-                <label>Start date
-                    <input type="date" name="start" th:value="${start}">
-                </label>
-                <label>End date
-                    <input type="date" name="end" th:value="${end}">
-                </label>
-            </div>
-            <div class="actions" style="margin-top: 14px;">
-                <button class="btn" type="submit">Filter Logs</button>
-                <a th:href="@{/admin/activity-logs}" class="btn secondary">Reset</a>
-            </div>
-        </form>
-    </div>
-
-    <div class="card">
-        <h2>Logged Activity Events</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>Timestamp</th>
-                    <th>Actor</th>
-                    <th>Action</th>
-                    <th>Entity Type</th>
-                    <th>Entity ID</th>
-                    <th>IP Address</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr th:each="log : ${logs}">
-                    <td th:text="${#temporals.format(log.timestamp, 'yyyy-MM-dd HH:mm:ss')}"></td>
-                    <td>
-                        <span th:if="${log.user != null}" th:text="${log.user.universityId + ' (' + log.user.firstName + ' ' + log.user.lastName + ')'}"></span>
-                        <span th:if="${log.user == null}" class="muted">System / Anonymous</span>
-                    </td>
-                    <td>
-                        <span class="badge" th:text="${log.action}"></span>
-                    </td>
-                    <td th:text="${log.entityType != null ? log.entityType : '-'}"></td>
-                    <td th:text="${log.entityId != null ? log.entityId : '-'}"></td>
-                    <td th:text="${log.ipAddress != null ? log.ipAddress : '-'}"></td>
-                </tr>
-                <tr th:if="${#lists.isEmpty(logs)}">
-                    <td colspan="6" class="muted">No activity logs found matching the selected criteria.</td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-</div>
+    <section class="card audit-panel audit-results" aria-labelledby="events-title">
+        <div class="audit-section-heading"><div><h2 id="events-title">Activity events <span class="audit-count" th:text="${resultCount}">0</span></h2><p class="muted">Newest events appear first. Audit records are read-only.</p></div></div>
+        <div th:if="${#lists.isEmpty(logs)}" class="audit-empty"><div class="audit-empty-icon" aria-hidden="true">⌕</div><h3>No matching activity</h3><p>Try a broader date range or clear one of the filters.</p><a class="btn secondary" th:href="@{/admin/activity-logs}">Clear filters</a></div>
+        <div th:replace="~{fragments/activity-events :: events(${logs})}"></div>
+        <div class="audit-footer">
+            <p class="muted" role="status"><strong th:text="${resultCount}">0</strong> matching events<span th:if="${resultCount > 0}" th:text="${' · Showing ' + (page * size + 1) + '–' + (page * size + #lists.size(logs))}"></span></p>
+            <nav aria-label="Activity log pages"><a th:if="${page > 0}" class="btn secondary" th:href="@{/admin/activity-logs(action=${selectedAction},entityType=${selectedEntityType},search=${search},start=${start},end=${end},size=${size},page=${page - 1})}">← Previous</a><span th:text="${'Page ' + (page + 1) + ' of ' + pageCount}"></span><a th:if="${page + 1 < pageCount}" class="btn secondary" th:href="@{/admin/activity-logs(action=${selectedAction},entityType=${selectedEntityType},search=${search},start=${start},end=${end},size=${size},page=${page + 1})}">Next →</a></nav>
+        </div>
+    </section>
+</main>
 </body>
 </html>

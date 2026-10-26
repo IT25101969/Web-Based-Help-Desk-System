@@ -14,6 +14,15 @@ import org.springframework.security.web.access.expression.WebExpressionAuthoriza
 
 @Configuration
 public class SecurityConfig {
+    @Bean
+    public org.springframework.security.core.session.SessionRegistry sessionRegistry() {
+        return new org.springframework.security.core.session.SessionRegistryImpl();
+    }
+
+    @Bean
+    public org.springframework.security.web.session.HttpSessionEventPublisher sessionEvents() {
+        return new org.springframework.security.web.session.HttpSessionEventPublisher();
+    }
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -30,7 +39,11 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests(auth -> auth
 
+                        // Render container errors without replacing their status with a login redirect.
+                        .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ERROR).permitAll()
+
                         // Public authentication resources
+                        .requestMatchers(HttpMethod.GET, "/", "/help", "/privacy").permitAll()
                         .requestMatchers(
                                 "/login",
                                 "/forgot-password",
@@ -42,6 +55,7 @@ public class SecurityConfig {
                         ).permitAll()
 
                         // Student ticket submission: role + permission
+                        .requestMatchers("/student/draft", "/student/draft/**").access(new WebExpressionAuthorizationManager("hasRole('Student') and hasAuthority('SUBMIT_TICKET')"))
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/student/tickets/new"
@@ -148,7 +162,14 @@ public class SecurityConfig {
                                 "hasRole('System Administrator') and hasAuthority('VIEW_ALL_TICKETS')"
                         ))
 
+                        .requestMatchers(HttpMethod.POST, "/my-assets/*/maintenance-complete")
+                        .hasAnyRole("Help Desk Support Staff", "Department Support Team Member")
+
                         // Administration permissions
+                        .requestMatchers("/admin/assets", "/admin/assets/**")
+                        .access(new WebExpressionAuthorizationManager(
+                                "hasRole('System Administrator') and hasAuthority('MANAGE_SYSTEM')"
+                        ))
                         .requestMatchers("/reports", "/reports/**")
                         .access(new WebExpressionAuthorizationManager(
                                 "hasAnyRole('System Administrator','University Management') and hasAuthority('VIEW_REPORTS')"
@@ -169,7 +190,7 @@ public class SecurityConfig {
                                 "hasRole('System Administrator') and hasAuthority('VIEW_REPORTS')"
                         ))
 
-                        .requestMatchers("/admin/monitoring/**", "/admin/activity-logs/**")
+                        .requestMatchers("/admin/monitoring/**", "/admin/activity-logs/**", "/admin/service-setup", "/admin/service-setup/**", "/admin/support-tools", "/admin/support-tools/**")
                         .access(new WebExpressionAuthorizationManager(
                                 "hasRole('System Administrator') and hasAuthority('MANAGE_SYSTEM')"
                         ))
@@ -229,8 +250,10 @@ public class SecurityConfig {
                 )
 
                 .sessionManagement(session ->
-                        session.sessionFixation()
-                                .migrateSession()
+                        session.sessionFixation().migrateSession()
+                                .maximumSessions(-1)
+                                .sessionRegistry(sessionRegistry())
+                                .expiredUrl("/login?expired")
                 );
 
         return http.build();

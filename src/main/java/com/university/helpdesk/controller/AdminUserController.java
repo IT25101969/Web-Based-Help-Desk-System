@@ -22,31 +22,46 @@ import java.util.Optional;
 @RequestMapping("/admin/users")
 public class AdminUserController {
 
+    private final com.university.helpdesk.service.AdminAccountService accountAccess;
     private final UserAccountRepository userAccountRepository;
     private final UserRoleRepository userRoleRepository;
     private final RoleRepository roleRepository;
     private final StudentRepository studentRepository;
     private final PasswordEncoder passwordEncoder;
     private final ActivityLogService activityLogService;
+    private final com.university.helpdesk.security.AccountSessionService accountSessions;
+    private final com.university.helpdesk.service.AccountCreationService accountCreation;
+    private final com.university.helpdesk.service.UserProfileService profiles;
 
     public AdminUserController(
+            com.university.helpdesk.service.AdminAccountService accountAccess,
             UserAccountRepository userAccountRepository,
             UserRoleRepository userRoleRepository,
             RoleRepository roleRepository,
             StudentRepository studentRepository,
             PasswordEncoder passwordEncoder,
-            ActivityLogService activityLogService
+            ActivityLogService activityLogService,
+            com.university.helpdesk.security.AccountSessionService accountSessions,
+            com.university.helpdesk.service.AccountCreationService accountCreation,
+            com.university.helpdesk.service.UserProfileService profiles
     ) {
+        this.accountAccess = accountAccess;
         this.userAccountRepository = userAccountRepository;
         this.userRoleRepository = userRoleRepository;
         this.roleRepository = roleRepository;
         this.studentRepository = studentRepository;
         this.passwordEncoder = passwordEncoder;
         this.activityLogService = activityLogService;
+        this.accountSessions = accountSessions;
+        this.accountCreation = accountCreation;
+        this.profiles = profiles;
     }
 
     @GetMapping
-    public String list(Model model) {
+    public String list(Model model, @RequestParam(defaultValue = "") String q,
+                       @RequestParam(defaultValue = "") String status,
+                       @RequestParam(required = false) Long roleId,
+                       @RequestParam(defaultValue = "0") int page) {
         List<UserAccount> users = userAccountRepository.findAll();
 
         Map<Long, List<UserRole>> userRolesMap = new LinkedHashMap<>();
@@ -57,11 +72,52 @@ public class AdminUserController {
             );
         }
 
-        model.addAttribute("users", users);
+        String query = q.trim();
+        query = query.substring(0, Math.min(200, query.length()));
+        String term = query.toLowerCase(java.util.Locale.ROOT);
+        String selectedStatus = java.util.Arrays.stream(AccountStatus.values()).anyMatch(s -> s.name().equals(status)) ? status : "";
+        var filtered = users.stream().filter(u -> (u.getUniversityId() + " " + u.getFirstName() + " " + u.getLastName() + " " + u.getEmail()).toLowerCase(java.util.Locale.ROOT).contains(term))
+                .filter(u -> selectedStatus.isEmpty() || u.getAccountStatus().name().equals(selectedStatus))
+                .filter(u -> roleId == null || userRolesMap.get(u.getUserId()).stream().anyMatch(r -> r.getRole().getRoleId().equals(roleId)))
+                .sorted(java.util.Comparator.comparing(UserAccount::getUniversityId, String.CASE_INSENSITIVE_ORDER)).toList();
+        int pages = Math.max(1, (filtered.size() + 9) / 10);
+        int current = Math.max(0, Math.min(page, pages - 1));
+        model.addAttribute("users", filtered.subList(Math.min(current * 10, filtered.size()), Math.min(current * 10 + 10, filtered.size())));
+        model.addAttribute("totalUsers", users.size());
+        model.addAttribute("activeUsers", users.stream().filter(u -> u.getAccountStatus() == AccountStatus.ACTIVE).count());
+        model.addAttribute("lockedUsers", users.stream().filter(u -> u.getAccountStatus() == AccountStatus.LOCKED).count());
+        model.addAttribute("disabledUsers", users.stream().filter(u -> u.getAccountStatus() == AccountStatus.DISABLED).count());
+        model.addAttribute("q", query); model.addAttribute("selectedStatus", selectedStatus); model.addAttribute("selectedRoleId", roleId);
+        model.addAttribute("resultCount", filtered.size()); model.addAttribute("page", current); model.addAttribute("pageCount", pages);
+        if (!model.containsAttribute("createValues")) model.addAttribute("createValues", java.util.Map.of());
         model.addAttribute("roles", roleRepository.findAll());
         model.addAttribute("userRolesMap", userRolesMap);
         model.addAttribute("statuses", AccountStatus.values());
         return "admin-users";
+    }
+
+    @GetMapping("/{userId}/edit")
+    public String edit(@PathVariable Long userId, Model model) {
+        var user = userAccountRepository.findById(userId).orElseThrow(() -> new com.university.helpdesk.service.ResourceNotFoundException("User was not found."));
+        model.addAttribute("account", user);
+        if (!model.containsAttribute("profileValues")) model.addAttribute("profileValues", Map.of("universityId", user.getUniversityId(), "email", user.getEmail(), "firstName", user.getFirstName(), "lastName", user.getLastName()));
+        model.addAttribute("assignedRoles", userRoleRepository.findByUserUserIdAndActiveTrue(userId));
+        model.addAttribute("roles", roleRepository.findAll()); model.addAttribute("statuses", AccountStatus.values());
+        return "admin-user-edit";
+    }
+
+    @PostMapping("/{userId}/profile")
+    public String updateProfile(@PathVariable Long userId, @RequestParam String universityId, @RequestParam String email,
+                                @RequestParam String firstName, @RequestParam String lastName, Authentication authentication,
+                                HttpServletRequest request, RedirectAttributes flash) {
+        try {
+            profiles.update(userId, universityId, email, firstName, lastName, authentication.getName(), request.getRemoteAddr());
+            flash.addFlashAttribute("success", "Profile updated successfully. Changes to login details require a new sign-in.");
+        } catch (IllegalArgumentException | org.springframework.dao.DataIntegrityViolationException ex) {
+            flash.addFlashAttribute("error", ex instanceof IllegalArgumentException ? ex.getMessage() : "These login details are already in use. Choose a different university ID or email.");
+            flash.addFlashAttribute("profileValues", Map.of("universityId", universityId, "email", email, "firstName", firstName, "lastName", lastName));
+        }
+        return "redirect:/admin/users/" + userId + "/edit";
     }
 
     @PostMapping
@@ -92,9 +148,7 @@ public class AdminUserController {
             if (userAccountRepository.existsByEmail(email.trim())) {
                 throw new IllegalArgumentException("Email already exists.");
             }
-            if (password == null || password.length() < 8) {
-                throw new IllegalArgumentException("Password must contain at least 8 characters.");
-            }
+            com.university.helpdesk.security.PasswordPolicy.validate(password);
 
             Role role = roleRepository.findById(roleId)
                     .orElseThrow(() -> new IllegalArgumentException("Role was not found."));
@@ -106,20 +160,7 @@ public class AdminUserController {
             user.setFirstName(firstName.trim());
             user.setLastName(lastName.trim());
             user.setAccountStatus(AccountStatus.ACTIVE);
-            user = userAccountRepository.save(user);
-
-            UserRole userRole = new UserRole();
-            userRole.setUser(user);
-            userRole.setRole(role);
-            userRole.setActive(true);
-            userRole.setAssignedDate(LocalDateTime.now());
-            userRoleRepository.save(userRole);
-
-            if ("Student".equals(role.getRoleName())) {
-                Student student = new Student();
-                student.setUser(user);
-                studentRepository.save(student);
-            }
+            user = accountCreation.create(user, role);
 
             UserAccount actor = userAccountRepository
                     .findByUniversityId(authentication.getName())
@@ -138,6 +179,7 @@ public class AdminUserController {
             redirectAttributes.addFlashAttribute("success", "User account created.");
         } catch (RuntimeException ex) {
             redirectAttributes.addFlashAttribute("error", ex.getMessage());
+            redirectAttributes.addFlashAttribute("createValues", Map.of("universityId", universityId, "email", email, "firstName", firstName, "lastName", lastName, "roleId", roleId));
         }
 
         return "redirect:/admin/users";
@@ -152,61 +194,12 @@ public class AdminUserController {
             RedirectAttributes redirectAttributes
     ) {
         try {
-            UserAccount user = userAccountRepository.findById(userId)
-                    .orElseThrow(() -> new IllegalArgumentException("User was not found."));
-
-            UserAccount actor = userAccountRepository
-                    .findByUniversityId(authentication.getName())
-                    .orElseThrow(() -> new IllegalArgumentException("Authenticated user not found."));
-
-            if (actor.getUserId().equals(user.getUserId()) && (status == AccountStatus.DISABLED || status == AccountStatus.LOCKED)) {
-                throw new IllegalArgumentException("Administrators cannot disable or lock their own account.");
-            }
-
-            boolean isUsableAdmin = user.getAccountStatus() == AccountStatus.ACTIVE &&
-                    userRoleRepository.findByUserUserIdAndActiveTrue(user.getUserId())
-                            .stream()
-                            .anyMatch(ur -> "System Administrator".equalsIgnoreCase(ur.getRole().getRoleName()));
-
-            if (isUsableAdmin && status != AccountStatus.ACTIVE) {
-                long otherUsableAdmins = userRoleRepository.countActiveUsersWithRoleExcludingUser(
-                        "System Administrator",
-                        AccountStatus.ACTIVE,
-                        user.getUserId()
-                );
-                if (otherUsableAdmins < 1) {
-                    throw new IllegalArgumentException("Cannot disable or lock the last usable System Administrator account.");
-                }
-            }
-
-            AccountStatus oldStatus = user.getAccountStatus();
-            user.setAccountStatus(status);
-
-            if (status == AccountStatus.ACTIVE) {
-                user.setFailedLoginAttempts(0);
-                user.setLockedUntil(null);
-            }
-
-            userAccountRepository.save(user);
-
-            String action = (oldStatus == AccountStatus.LOCKED && status == AccountStatus.ACTIVE)
-                    ? "USER_UNLOCKED"
-                    : "USER_STATUS_CHANGED";
-
-            activityLogService.log(
-                    actor,
-                    action,
-                    "USER_ACCOUNT",
-                    userId,
-                    request.getRemoteAddr()
-            );
-
-            redirectAttributes.addFlashAttribute("success", "User status updated.");
+            redirectAttributes.addFlashAttribute("success", accountAccess.status(userId, status, authentication.getName(), request.getRemoteAddr()));
         } catch (RuntimeException ex) {
             redirectAttributes.addFlashAttribute("error", ex.getMessage());
         }
 
-        return "redirect:/admin/users";
+        return "profile".equals(request.getParameter("returnTo")) ? "redirect:/admin/users/" + userId + "/edit" : "redirect:/admin/users";
     }
 
     @PostMapping("/{userId}/unlock")
@@ -217,34 +210,12 @@ public class AdminUserController {
             RedirectAttributes redirectAttributes
     ) {
         try {
-            UserAccount user = userAccountRepository.findById(userId)
-                    .orElseThrow(() -> new IllegalArgumentException("User was not found."));
-
-            user.setAccountStatus(AccountStatus.ACTIVE);
-            user.setFailedLoginAttempts(0);
-            user.setLockedUntil(null);
-            userAccountRepository.save(user);
-
-            UserAccount actor = userAccountRepository
-                    .findByUniversityId(authentication.getName())
-                    .orElse(null);
-
-            if (actor != null) {
-                activityLogService.log(
-                        actor,
-                        "USER_UNLOCKED",
-                        "USER_ACCOUNT",
-                        userId,
-                        request.getRemoteAddr()
-                );
-            }
-
-            redirectAttributes.addFlashAttribute("success", "User account unlocked.");
+            redirectAttributes.addFlashAttribute("success", accountAccess.unlock(userId, authentication.getName(), request.getRemoteAddr()));
         } catch (RuntimeException ex) {
             redirectAttributes.addFlashAttribute("error", ex.getMessage());
         }
 
-        return "redirect:/admin/users";
+        return "profile".equals(request.getParameter("returnTo")) ? "redirect:/admin/users/" + userId + "/edit" : "redirect:/admin/users";
     }
 
     @PostMapping("/{userId}/role")
@@ -256,58 +227,12 @@ public class AdminUserController {
             RedirectAttributes redirectAttributes
     ) {
         try {
-            UserAccount user = userAccountRepository.findById(userId)
-                    .orElseThrow(() -> new IllegalArgumentException("User was not found."));
-
-            Role role = roleRepository.findById(roleId)
-                    .orElseThrow(() -> new IllegalArgumentException("Role was not found."));
-
-            Optional<UserRole> existing = userRoleRepository.findByUserUserIdAndRoleRoleId(userId, roleId);
-            if (existing.isPresent()) {
-                UserRole userRole = existing.get();
-                if (Boolean.TRUE.equals(userRole.getActive())) {
-                    redirectAttributes.addFlashAttribute("error", "Role is already assigned to this user.");
-                    return "redirect:/admin/users";
-                } else {
-                    userRole.setActive(true);
-                    userRole.setAssignedDate(LocalDateTime.now());
-                    userRoleRepository.save(userRole);
-                }
-            } else {
-                UserRole userRole = new UserRole();
-                userRole.setUser(user);
-                userRole.setRole(role);
-                userRole.setActive(true);
-                userRole.setAssignedDate(LocalDateTime.now());
-                userRoleRepository.save(userRole);
-            }
-
-            if ("Student".equalsIgnoreCase(role.getRoleName()) && !studentRepository.existsById(userId)) {
-                Student student = new Student();
-                student.setUser(user);
-                studentRepository.save(student);
-            }
-
-            UserAccount actor = userAccountRepository
-                    .findByUniversityId(authentication.getName())
-                    .orElse(null);
-
-            if (actor != null) {
-                activityLogService.log(
-                        actor,
-                        "USER_ROLE_ASSIGNED",
-                        "USER_ROLE",
-                        userId,
-                        request.getRemoteAddr()
-                );
-            }
-
-            redirectAttributes.addFlashAttribute("success", "Role assigned.");
+            redirectAttributes.addFlashAttribute("success", accountAccess.addRole(userId, roleId, authentication.getName(), request.getRemoteAddr()));
         } catch (RuntimeException ex) {
             redirectAttributes.addFlashAttribute("error", ex.getMessage());
         }
 
-        return "redirect:/admin/users";
+        return "profile".equals(request.getParameter("returnTo")) ? "redirect:/admin/users/" + userId + "/edit" : "redirect:/admin/users";
     }
 
     @PostMapping("/{userId}/roles/{roleId}/remove")
@@ -319,54 +244,12 @@ public class AdminUserController {
             RedirectAttributes redirectAttributes
     ) {
         try {
-            UserAccount targetUser = userAccountRepository.findById(userId)
-                    .orElseThrow(() -> new IllegalArgumentException("User was not found."));
-
-            UserAccount actor = userAccountRepository
-                    .findByUniversityId(authentication.getName())
-                    .orElseThrow(() -> new IllegalArgumentException("Authenticated user not found."));
-
-            UserRole userRole = userRoleRepository.findByUserUserIdAndRoleRoleId(userId, roleId)
-                    .orElseThrow(() -> new IllegalArgumentException("Role assignment was not found."));
-
-            if (!Boolean.TRUE.equals(userRole.getActive())) {
-                redirectAttributes.addFlashAttribute("error", "Role is not currently assigned to this user.");
-                return "redirect:/admin/users";
-            }
-
-            if ("System Administrator".equalsIgnoreCase(userRole.getRole().getRoleName())) {
-                if (actor.getUserId().equals(targetUser.getUserId())) {
-                    throw new IllegalArgumentException("Administrators cannot remove their own System Administrator role.");
-                }
-                if (targetUser.getAccountStatus() == AccountStatus.ACTIVE) {
-                    long otherUsableAdmins = userRoleRepository.countActiveUsersWithRoleExcludingUser(
-                            "System Administrator",
-                            AccountStatus.ACTIVE,
-                            targetUser.getUserId()
-                    );
-                    if (otherUsableAdmins < 1) {
-                        throw new IllegalArgumentException("Cannot remove the role from the last usable System Administrator account.");
-                    }
-                }
-            }
-
-            userRole.setActive(false);
-            userRoleRepository.save(userRole);
-
-            activityLogService.log(
-                    actor,
-                    "USER_ROLE_REMOVED",
-                    "USER_ROLE",
-                    userId,
-                    request.getRemoteAddr()
-            );
-
-            redirectAttributes.addFlashAttribute("success", "Role removed.");
+            redirectAttributes.addFlashAttribute("success", accountAccess.removeRole(userId, roleId, authentication.getName(), request.getRemoteAddr()));
         } catch (RuntimeException ex) {
             redirectAttributes.addFlashAttribute("error", ex.getMessage());
         }
 
-        return "redirect:/admin/users";
+        return "profile".equals(request.getParameter("returnTo")) ? "redirect:/admin/users/" + userId + "/edit" : "redirect:/admin/users";
     }
 
     @PostMapping("/{userId}/delete")
@@ -377,47 +260,7 @@ public class AdminUserController {
             RedirectAttributes redirectAttributes
     ) {
         try {
-            UserAccount targetUser = userAccountRepository.findById(userId)
-                    .orElseThrow(() -> new IllegalArgumentException("User was not found."));
-
-            UserAccount actor = userAccountRepository
-                    .findByUniversityId(authentication.getName())
-                    .orElseThrow(() -> new IllegalArgumentException("Authenticated user not found."));
-
-            if (actor.getUserId().equals(targetUser.getUserId())) {
-                throw new IllegalArgumentException("Administrators cannot delete their own account.");
-            }
-
-            long otherUsableAdmins = userRoleRepository.countActiveUsersWithRoleExcludingUser(
-                    "System Administrator",
-                    AccountStatus.ACTIVE,
-                    targetUser.getUserId()
-            );
-            boolean isTargetAdmin = userRoleRepository.findByUserUserIdAndActiveTrue(targetUser.getUserId())
-                    .stream().anyMatch(r -> "System Administrator".equals(r.getRole().getRoleName()));
-
-            if (isTargetAdmin && otherUsableAdmins < 1) {
-                throw new IllegalArgumentException("Cannot delete the last usable System Administrator account.");
-            }
-
-            targetUser.setAccountStatus(AccountStatus.DISABLED);
-            userAccountRepository.save(targetUser);
-
-            List<UserRole> roles = userRoleRepository.findByUserUserId(userId);
-            for (UserRole r : roles) {
-                r.setActive(false);
-                userRoleRepository.save(r);
-            }
-
-            activityLogService.log(
-                    actor,
-                    "USER_DELETED",
-                    "USER_ACCOUNT",
-                    userId,
-                    request.getRemoteAddr()
-            );
-
-            redirectAttributes.addFlashAttribute("success", "User account " + targetUser.getUniversityId() + " deactivated / deleted successfully.");
+            redirectAttributes.addFlashAttribute("success", accountAccess.delete(userId, authentication.getName(), request.getRemoteAddr()));
         } catch (RuntimeException ex) {
             redirectAttributes.addFlashAttribute("error", ex.getMessage());
         }

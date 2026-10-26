@@ -73,8 +73,8 @@ public class EmailQueueProcessor {
 
     @Transactional
     public void processItem(EmailNotificationQueue item) {
-        // Double check status to avoid race conditions
-        if (item.getStatus() != EmailQueueStatus.PENDING) {
+        // Ignore disabled delivery and already completed items.
+        if (!emailSenderService.isMailEnabled() || item.getStatus() != EmailQueueStatus.PENDING) {
             return;
         }
 
@@ -88,26 +88,11 @@ public class EmailQueueProcessor {
                     item.getMessage()
             );
 
-            item.setStatus(EmailQueueStatus.SENT);
-            item.setSentAt(now);
-            item.setNextRetryAt(null);
-            item.setLastError(null);
-            item.setUpdatedAt(now);
-            queueRepository.save(item);
-
-            // Audit log
-            ActivityLog activityLog = new ActivityLog();
-            activityLog.setUser(item.getUser());
-            activityLog.setAction("EMAIL_NOTIFICATION_SENT");
-            activityLog.setEntityType("EMAIL_NOTIFICATION_QUEUE");
-            activityLog.setEntityId(item.getQueueId());
-            activityLog.setTimestamp(now);
-            activityLogRepository.save(activityLog);
-
         } catch (Exception ex) {
-            String error = ex.getMessage() != null
-                    ? (ex.getMessage().length() > 950 ? ex.getMessage().substring(0, 950) : ex.getMessage())
-                    : ex.getClass().getSimpleName();
+            // SMTP exception messages can contain credentials, recipients or reset links.
+            String error = ex instanceof org.springframework.mail.MailAuthenticationException
+                    ? "SMTP authentication failed. Check mail account configuration."
+                    : "SMTP delivery failed. Check mail configuration and connectivity.";
             item.setLastError(error);
             item.setUpdatedAt(now);
 
@@ -133,6 +118,22 @@ public class EmailQueueProcessor {
             }
 
             queueRepository.save(item);
+            return;
         }
+        item.setStatus(EmailQueueStatus.SENT);
+        item.setSentAt(now);
+        item.setNextRetryAt(null);
+        item.setLastError(null);
+        item.setUpdatedAt(now);
+        queueRepository.save(item);
+
+        // Audit log
+        ActivityLog activityLog = new ActivityLog();
+        activityLog.setUser(item.getUser());
+        activityLog.setAction("EMAIL_NOTIFICATION_SENT");
+        activityLog.setEntityType("EMAIL_NOTIFICATION_QUEUE");
+        activityLog.setEntityId(item.getQueueId());
+        activityLog.setTimestamp(now);
+        activityLogRepository.save(activityLog);
     }
 }

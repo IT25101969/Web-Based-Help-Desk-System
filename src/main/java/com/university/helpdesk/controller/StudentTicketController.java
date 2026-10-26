@@ -31,6 +31,8 @@ public class StudentTicketController {
     private final AttachmentService attachmentService;
     private final CommentService commentService;
     private final FeedbackService feedbackService;
+    private final TicketWorkspaceService workspace;
+    private final ItAssetService assets;
 
     public StudentTicketController(
             TicketService ticketService,
@@ -39,7 +41,9 @@ public class StudentTicketController {
             AttachmentRepository attachmentRepository,
             AttachmentService attachmentService,
             CommentService commentService,
-            FeedbackService feedbackService
+            FeedbackService feedbackService,
+            TicketWorkspaceService workspace,
+            ItAssetService assets
     ) {
         this.ticketService = ticketService;
         this.categoryRepository = categoryRepository;
@@ -48,14 +52,28 @@ public class StudentTicketController {
         this.attachmentService = attachmentService;
         this.commentService = commentService;
         this.feedbackService = feedbackService;
+        this.workspace = workspace;
+        this.assets = assets;
+    }
+
+    @ModelAttribute("selectableAssets")
+    public java.util.List<ItAssetService.AssetOption> selectableAssets(Authentication auth) {
+        return assets.selectable(auth.getName());
     }
 
     @GetMapping
-    public String list(Authentication authentication, Model model) {
-        model.addAttribute(
-                "tickets",
-                ticketService.getStudentTickets(authentication.getName())
-        );
+    public String list(Authentication authentication, Model model,
+            @RequestParam(defaultValue = "") String q, @RequestParam(required = false) TicketStatus status,
+            @RequestParam(defaultValue = "newest") String sort, @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        var ticketPage = workspace.search(authentication.getName(), "student", q, status, null, null, false, null, sort, page, size);
+        model.addAttribute("tickets", ticketPage.getContent());
+        model.addAttribute("ticketPage", ticketPage);
+        model.addAttribute("q", TicketWorkspaceService.normalizeQuery(q));
+        model.addAttribute("selectedSort", TicketWorkspaceService.normalizeOrder(sort));
+        model.addAttribute("selectedStatus", status);
+        model.addAttribute("statuses", TicketStatus.values());
+        model.addAttribute("basePath", "/student");
         return "student-ticket-list";
     }
 
@@ -100,14 +118,14 @@ public class StudentTicketController {
         }
 
         try {
-            Ticket ticket = ticketService.createTicketWithAttachment(
+            Ticket ticket = ticketService.createTicketWithAsset(
                     authentication.getName(),
                     form.getCategoryId(),
                     form.getTicketType(),
                     form.getSubject(),
                     form.getDescription(),
                     form.getSubtypeDetail(),
-                    form.getSeverity(), form.getAttachment()
+                    form.getSeverity(), form.getAttachment(), form.getAssetId()
             );
 
             redirectAttributes.addFlashAttribute(
@@ -240,7 +258,7 @@ public class StudentTicketController {
                 .header(
                         HttpHeaders.CONTENT_DISPOSITION,
                         ContentDisposition.attachment()
-                                .filename(attachment.getFileName())
+                                .filename(attachment.getFileName(), java.nio.charset.StandardCharsets.UTF_8)
                                 .build()
                                 .toString()
                 )

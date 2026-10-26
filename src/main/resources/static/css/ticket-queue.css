@@ -1,0 +1,35 @@
+.queue-page { max-width:1480px; }
+.queue-panel { padding:28px; }
+.queue-panel .surface-toolbar { gap:18px; margin-bottom:28px; }
+.queue-panel .surface-toolbar label { font-size:.76rem; font-weight:650; }
+.queue-panel .surface-toolbar input:not([type="checkbox"]), .queue-panel .surface-toolbar select { font-size:.8rem; min-height:44px; background:#fcfcff; }
+.queue-panel .surface-toolbar .btn { font-size:.8rem; min-height:40px; }
+.queue-section-heading { margin:0 0 20px; }
+.queue-section-heading h2 { margin:0; font-size:1.12rem; letter-spacing:-.025em; }
+.queue-section-heading p { margin:6px 0 0; color:var(--text-muted); font-size:.79rem; }
+.queue-count { display:inline-block; vertical-align:middle; padding:3px 9px; margin-left:8px; border-radius:7px; background:var(--primary-light); color:var(--primary); font-size:.7rem; }
+.queue-table table { min-width:1100px; table-layout:auto; }
+.queue-table th { padding:16px; font-size:.65rem; letter-spacing:.06em; white-space:nowrap; }
+.queue-table td { padding:20px 16px; font-size:.78rem; vertical-align:middle; overflow-wrap:normal; word-break:normal; }
+.queue-table tbody tr:hover { background:#fafaff; }
+.queue-table .queue-ticket { min-width:230px; max-width:280px; }
+.queue-reference { display:inline-block; color:var(--primary); font-size:.7rem; font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-weight:700; white-space:nowrap; }
+.queue-reference:hover { text-decoration:underline; }
+.queue-subject { display:block; margin:7px 0 5px; color:#24324a; font-size:.82rem; font-weight:650; line-height:1.55; overflow-wrap:anywhere; }
+.queue-table small { display:block; margin-top:5px; font-size:.67rem; color:var(--text-muted); }
+.queue-department { display:block; min-width:115px; max-width:155px; line-height:1.5; font-weight:550; }
+.queue-routing { display:inline-block; padding:6px 9px; border-radius:7px; color:#93601b; background:#fff6e7; font-size:.7rem; line-height:1.4; }
+.queue-table .badge { white-space:nowrap; word-break:normal; border-radius:7px; text-transform:none; letter-spacing:0; font-size:.67rem; padding:5px 9px; font-weight:650; animation:none; }
+.queue-assignee { display:flex; align-items:center; gap:10px; min-width:155px; max-width:210px; }
+.queue-avatar { display:grid; place-items:center; flex-shrink:0; width:36px; height:36px; border-radius:11px; border:1px solid #e3e0f8; background:#eeedfd; color:#5b53a4; font-weight:750; font-size:.68rem; }
+.queue-assignee strong { display:block; font-size:.75rem; line-height:1.5; font-weight:650; }
+.queue-unassigned { color:var(--text-muted); font-size:.74rem; }
+.queue-created time { display:block; white-space:nowrap; font-size:.75rem; font-weight:600; }
+.queue-table .deadline-pill { white-space:nowrap; font-size:.7rem; }
+.queue-table .deadline-date { white-space:nowrap; }
+.queue-table .empty-table { padding:40px 20px; }
+.queue-table .empty-table p { font-size:.8rem; margin:8px 0 0; }
+.queue-panel > .form-hint { font-size:.7rem; line-height:1.6; margin-top:18px; }
+.queue-panel .ticket-pager { font-size:.76rem; }
+.queue-page a:focus-visible, .queue-page button:focus-visible { outline:3px solid #a5b4fc; outline-offset:3px; }
+@media(max-width:700px) { .queue-panel { padding:18px; }.queue-page .page-hero { padding:24px; }.queue-panel .surface-toolbar { gap:14px; }.queue-table td { padding:16px; } }

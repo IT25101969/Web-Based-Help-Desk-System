@@ -67,8 +67,8 @@ public class CustomAuthenticationFailureHandler
             }
 
             if (user.getAccountStatus() == AccountStatus.LOCKED
-                    && user.getLockedUntil() != null
-                    && user.getLockedUntil().isAfter(LocalDateTime.now())) {
+                    && (user.getLockedUntil() == null
+                    || user.getLockedUntil().isAfter(LocalDateTime.now()))) {
 
                 activityLogService.log(
                         user,

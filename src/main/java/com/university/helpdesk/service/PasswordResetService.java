@@ -8,6 +8,9 @@ import com.university.helpdesk.repository.UserAccountRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import com.university.helpdesk.security.AccountSessionService;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -30,6 +33,7 @@ public class PasswordResetService {
     private final SecureRandom secureRandom = new SecureRandom();
     private final com.university.helpdesk.repository.EmailNotificationQueueRepository emailQueueRepository;
     private final String publicUrl;
+    private final AccountSessionService sessions;
 
     public PasswordResetService(
             UserAccountRepository userAccountRepository,
@@ -37,7 +41,8 @@ public class PasswordResetService {
             PasswordEncoder passwordEncoder,
             ActivityLogService activityLogService,
             com.university.helpdesk.repository.EmailNotificationQueueRepository emailQueueRepository,
-            @org.springframework.beans.factory.annotation.Value("${app.public-url:http://localhost:8080}") String publicUrl
+            @org.springframework.beans.factory.annotation.Value("${app.public-url:http://localhost:8080}") String publicUrl,
+            AccountSessionService sessions
     ) {
         this.userAccountRepository = userAccountRepository;
         this.tokenRepository = tokenRepository;
@@ -45,6 +50,7 @@ public class PasswordResetService {
         this.activityLogService = activityLogService;
         this.emailQueueRepository = emailQueueRepository;
         this.publicUrl = publicUrl.replaceAll("/+$", "");
+        this.sessions = sessions;
     }
 
     @Transactional
@@ -59,10 +65,10 @@ public class PasswordResetService {
 
         UserAccount user = userOptional.get();
 
-        if (user.getAccountStatus() == AccountStatus.DISABLED) {
+        if (isResetBlocked(user)) {
             activityLogService.log(
                     user,
-                    "PASSWORD_RESET_DENIED_DISABLED_ACCOUNT",
+                    "PASSWORD_RESET_DENIED_ACCOUNT_STATUS",
                     "USER_ACCOUNT",
                     user.getUserId(),
                     ipAddress
@@ -111,6 +117,7 @@ public class PasswordResetService {
         return tokenRepository
                 .findByTokenHashAndUsedFalse(hashToken(rawToken))
                 .filter(token -> token.getExpiresAt().isAfter(LocalDateTime.now()))
+                .filter(token -> !isResetBlocked(token.getUser()))
                 .isPresent();
     }
 
@@ -141,12 +148,13 @@ public class PasswordResetService {
             return false;
         }
 
+        com.university.helpdesk.security.PasswordPolicy.validate(newPassword);
         UserAccount user = token.getUser();
 
-        if (user.getAccountStatus() == AccountStatus.DISABLED) {
+        if (isResetBlocked(user)) {
             activityLogService.log(
                     user,
-                    "PASSWORD_RESET_DENIED_DISABLED_ACCOUNT",
+                    "PASSWORD_RESET_DENIED_ACCOUNT_STATUS",
                     "USER_ACCOUNT",
                     user.getUserId(),
                     ipAddress
@@ -178,7 +186,16 @@ public class PasswordResetService {
                 ipAddress
         );
 
+        String universityId = user.getUniversityId();
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override public void afterCommit() { sessions.expire(universityId); }
+        });
         return true;
+    }
+
+    private boolean isResetBlocked(UserAccount user) {
+        return user.getAccountStatus() == AccountStatus.DISABLED
+                || (user.getAccountStatus() == AccountStatus.LOCKED && user.getLockedUntil() == null);
     }
 
     private void invalidateActiveTokens(Long userId) {

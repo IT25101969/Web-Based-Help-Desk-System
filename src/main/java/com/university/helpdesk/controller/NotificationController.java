@@ -10,15 +10,12 @@ import com.university.helpdesk.service.NotificationService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/notifications")
@@ -41,20 +38,25 @@ public class NotificationController {
     @GetMapping
     public String list(
             @RequestParam(name = "filter", defaultValue = "all") String filter,
+            @RequestParam(required = false) com.university.helpdesk.entity.NotificationType type,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
             Authentication authentication,
             Model model
     ) {
         UserAccount user = getAuthenticatedUser(authentication);
 
-        List<Notification> notifications = "unread".equalsIgnoreCase(filter)
-                ? notificationService.getUnreadForUser(user.getUserId())
-                : notificationService.getForUser(user.getUserId());
+        String currentFilter = "unread".equalsIgnoreCase(filter) ? "unread" : "all";
+        var notificationPage = notificationService.searchForUser(user.getUserId(), "unread".equals(currentFilter), type, page, size);
 
         long unreadCount = notificationService.countUnread(user.getUserId());
 
-        model.addAttribute("notifications", notifications);
+        model.addAttribute("notifications", notificationPage.getContent());
+        model.addAttribute("notificationPage", notificationPage);
+        model.addAttribute("selectedType", type);
+        model.addAttribute("notificationTypes", com.university.helpdesk.entity.NotificationType.values());
         model.addAttribute("unreadCount", unreadCount);
-        model.addAttribute("currentFilter", filter.toLowerCase());
+        model.addAttribute("currentFilter", currentFilter);
         model.addAttribute("user", user);
 
         return "notifications";
@@ -141,14 +143,11 @@ public class NotificationController {
             return "redirect:/notifications";
         }
 
-        Set<String> authorities = authentication.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .collect(Collectors.toSet());
-
         Long ticketId = ticket.getTicketId();
+        String base = com.university.helpdesk.security.RoleDestinations.basePath(authentication);
 
         // Role-aware ticket redirect:
-        if (authorities.contains("ROLE_Student")) {
+        if (base.equals("/student")) {
             // Ensure student only accesses their own ticket
             if (ticket.getStudent() != null &&
                     ticket.getStudent().getUser().getUserId().equals(user.getUserId())) {
@@ -157,16 +156,15 @@ public class NotificationController {
             throw new AccessDeniedException("You cannot access this ticket.");
         }
 
-        if (authorities.contains("ROLE_Help Desk Support Staff") ||
-                authorities.contains("ROLE_Department Support Team Member")) {
+        if (base.equals("/staff")) {
             return "redirect:/staff/tickets/" + ticketId;
         }
 
-        if (authorities.contains("ROLE_Department Manager")) {
+        if (base.equals("/manager")) {
             return "redirect:/manager/tickets/" + ticketId;
         }
 
-        if (authorities.contains("ROLE_System Administrator")) {
+        if (base.equals("/admin")) {
             return "redirect:/admin/tickets/" + ticketId;
         }
 

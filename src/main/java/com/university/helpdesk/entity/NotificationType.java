@@ -7,5 +7,6 @@ public enum NotificationType {
     ESCALATED,
     RESOLVED,
     CLOSED,
-    SYSTEM
+    SYSTEM,
+    OVERDUE
 }

@@ -1,0 +1,4 @@
+<!DOCTYPE html><html lang="en" xmlns:th="http://www.thymeleaf.org"><body>
+<section th:fragment="notices" class="notice-strip" aria-label="Campus announcements" th:if="${campusAnnouncements != null and !#lists.isEmpty(campusAnnouncements)}">
+    <details th:each="notice : ${campusAnnouncements}" th:class="'campus-notice ' + ${#strings.toLowerCase(notice.kind)}"><summary><span class="notice-label" th:text="${notice.kind}"></span><strong th:text="${notice.title}"></strong><span class="notice-expand">View details</span></summary><p th:text="${notice.message}"></p><small th:if="${notice.endsAt != null}" th:text="${'Until ' + #temporals.format(notice.endsAt, 'dd MMM yyyy, HH:mm')}"></small></details>
+</section></body></html>

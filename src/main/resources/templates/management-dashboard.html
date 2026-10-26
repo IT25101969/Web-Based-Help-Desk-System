@@ -5,34 +5,23 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>University Management Dashboard</title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/css/workspace-polish.css}">
 </head>
-<body>
-<header class="topbar">
-    <a th:href="@{/management/dashboard}" class="topbar-brand">
-        <strong>University</strong> <span>Help Desk</span>
-    </a>
-    <nav class="topbar-nav">
-        <a th:href="@{/management/dashboard}" class="active">Dashboard</a>
-        <a th:href="@{/management/reports}">Reports &amp; Analytics</a>
-        <a th:href="@{/notifications}">Notifications</a>
-    </nav>
-    <div class="topbar-user">
-        <span class="user-badge">Management</span>
-        <form th:action="@{/logout}" method="post" style="display: inline; margin: 0;">
-            <button type="submit" class="btn-logout">Logout</button>
-        </form>
-    </div>
-</header>
+<body class="dashboard-page app-page refined-page refined-dashboard reports-page">
+<header th:replace="~{fragments/topbar :: topbar('dashboard')}"></header>
 
 <div class="container">
-    <h1>University Management Dashboard</h1>
+    <section class="page-header page-hero"><div>
+        <span class="page-eyebrow">YOUR CAMPUS WORKSPACE</span>
+    <h1 class="page-title">University Management Dashboard</h1>
     <p class="muted">High-level help desk operational overview and departmental performance indicators.</p>
+    </div></section>
 
-    <div class="card" style="margin-bottom: 20px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+    <div class="card">
+        <div class="section-heading">
             <div>
-                <h3 style="margin: 0 0 4px 0;">Executive Reports &amp; CSV Export</h3>
-                <p class="muted" style="margin: 0;">Access custom date range filters, department breakdown, and spreadsheet exports.</p>
+                <h3>Executive Reports &amp; CSV Export</h3>
+                <p class="muted mb-0">Access custom date range filters, department breakdown, and spreadsheet exports.</p>
             </div>
             <div>
                 <a th:href="@{/management/reports}" class="btn">Open Detailed Reports</a>
@@ -41,36 +30,34 @@
     </div>
 
     <!-- Metric Cards -->
-    <div class="grid grid-2">
-        <div class="card">
-            <h3>Total Tickets</h3>
-            <p style="font-size: 28px; font-weight: 700; margin: 4px 0;" th:text="${summary.totalTickets}"></p>
-            <p class="muted">Total ticket volume across all departments.</p>
+    <div class="metric-grid">
+        <div class="metric-card">
+            <span class="metric-label">Total tickets</span>
+            <strong class="metric-value" th:text="${summary.totalTickets}">0</strong>
+            <p class="metric-note">Total volume across all departments.</p>
         </div>
-        <div class="card">
-            <h3>Resolution Rate</h3>
-            <p style="font-size: 28px; font-weight: 700; margin: 4px 0; color: #10b981;"
-               th:text="${#numbers.formatDecimal(summary.resolutionRate,1,1) + '%'}"></p>
-            <p class="muted">Percentage of completed tickets (Resolved + Closed).</p>
+        <div class="metric-card success">
+            <span class="metric-label">Resolution rate</span>
+            <strong class="metric-value" th:text="${#numbers.formatDecimal(summary.resolutionRate,1,1) + '%'}">0%</strong>
+            <p class="metric-note">Tickets completed as resolved or closed.</p>
         </div>
-        <div class="card">
-            <h3>Average Response Time</h3>
-            <p style="font-size: 28px; font-weight: 700; margin: 4px 0; color: #2563eb;"
-               th:text="${#numbers.formatDecimal(summary.averageResponseHours,1,2) + ' hours'}"></p>
-            <p class="muted">Average time from submission to first assignment.</p>
+        <div class="metric-card info">
+            <span class="metric-label">Average response</span>
+            <strong class="metric-value" th:text="${#numbers.formatDecimal(summary.averageResponseHours,1,2) + 'h'}">0h</strong>
+            <p class="metric-note">From submission to first assignment.</p>
         </div>
-        <div class="card">
-            <h3>Average Resolution Time</h3>
-            <p style="font-size: 28px; font-weight: 700; margin: 4px 0; color: #8b5cf6;"
-               th:text="${#numbers.formatDecimal(summary.averageResolutionHours,1,2) + ' hours'}"></p>
-            <p class="muted">Average time from submission to ticket resolution.</p>
+        <div class="metric-card warning">
+            <span class="metric-label">Average resolution</span>
+            <strong class="metric-value" th:text="${#numbers.formatDecimal(summary.averageResolutionHours,1,2) + 'h'}">0h</strong>
+            <p class="metric-note">From submission to ticket resolution.</p>
         </div>
     </div>
 
     <!-- Department Volumes Summary Table -->
     <div class="card">
         <h2>Department Ticket Volume Summary</h2>
-        <table>
+        <div class="table-responsive" tabindex="0" role="region" aria-label="Scrollable data table">
+<table>
             <thead>
                 <tr>
                     <th>Department</th>
@@ -87,6 +74,7 @@
                 </tr>
             </tbody>
         </table>
+</div>
     </div>
 </div>
 </body>

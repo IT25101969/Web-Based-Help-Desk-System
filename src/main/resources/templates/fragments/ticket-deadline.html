@@ -1,0 +1,5 @@
+<!DOCTYPE html><html lang="en" xmlns:th="http://www.thymeleaf.org"><body>
+<section th:fragment="deadline(ticket)" class="deadline-summary" aria-label="Resolution target">
+    <div><span class="section-eyebrow">RESOLUTION TARGET</span><strong th:text="${@ticketDeadlines.state(ticket) == 'complete' ? 'This request is completed' : #temporals.format(@ticketDeadlines.dueAt(ticket), 'dd MMM yyyy, HH:mm')}"></strong><p class="form-hint">Based on elapsed hours from submission and the current priority; this is a service target, not a guaranteed completion time.</p></div>
+    <span th:class="'deadline-pill ' + ${@ticketDeadlines.state(ticket)}" th:text="${@ticketDeadlines.label(ticket)}"></span>
+</section></body></html>

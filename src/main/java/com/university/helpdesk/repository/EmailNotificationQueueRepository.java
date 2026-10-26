@@ -20,6 +20,8 @@ public interface EmailNotificationQueueRepository extends JpaRepository<EmailNot
             @Param("now") LocalDateTime now
     );
 
+    boolean existsByUserUserIdAndTicketTicketIdAndMessageContaining(Long userId, Long ticketId, String message);
+
     long countByStatus(EmailQueueStatus status);
 
     List<EmailNotificationQueue> findByUserUserIdOrderByCreatedAtDesc(Long userId);

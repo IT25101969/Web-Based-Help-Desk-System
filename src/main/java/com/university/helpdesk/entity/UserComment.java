@@ -21,7 +21,7 @@ public class UserComment {
     private UserAccount user;
 
     @Lob
-    @Column(name = "Comment_Text", nullable = false)
+    @Column(name = "Comment_Text", nullable = false, columnDefinition = "MEDIUMTEXT")
     private String commentText;
 
     @Enumerated(EnumType.STRING)

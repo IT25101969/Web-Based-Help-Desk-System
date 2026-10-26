@@ -13,9 +13,17 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
-public interface TicketRepository extends JpaRepository<Ticket, Long> {
+public interface TicketRepository extends JpaRepository<Ticket, Long>, org.springframework.data.jpa.repository.JpaSpecificationExecutor<Ticket> {
+    boolean existsByAssetAssetId(Long assetId);
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"category", "student", "student.user"})
+    org.springframework.data.domain.Page<Ticket> findByAssetAssetIdOrderByCreatedDateDesc(Long assetId, org.springframework.data.domain.Pageable pageable);
+    @Override
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"category", "category.department", "student", "student.user"})
+    org.springframework.data.domain.Page<Ticket> findAll(org.springframework.data.jpa.domain.Specification<Ticket> specification,
+            org.springframework.data.domain.Pageable pageable);
     List<Ticket> findByStudentUserIdOrderByCreatedDateDesc(Long userId);
     List<Ticket> findAllByOrderByCreatedDateDesc();
+    org.springframework.data.domain.Page<Ticket> findByStatusInOrderByTicketIdAsc(Collection<TicketStatus> statuses,org.springframework.data.domain.Pageable pageable);
     long countByStatus(TicketStatus status);
     long countByStatusIn(Collection<TicketStatus> statuses);
     List<Ticket> findByCategoryDepartmentDepartmentIdInOrderByCreatedDateDesc(Collection<Long> departmentIds);

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"><body>
+<section th:fragment="reports(adminReview)" class="card">
+    <div class="section-heading"><div><div class="section-eyebrow">MAINTENANCE RECORDS</div><h2 th:text="${adminReview ? 'Repair reports &amp; approval' : 'My repair reports'}"></h2></div></div>
+    <p th:if="${#lists.isEmpty(repairReports)}" class="muted">No maintenance reports have been submitted yet.</p>
+    <article th:each="report : ${repairReports}" class="repair-report">
+        <div class="section-heading"><div><h3 th:text="${report.asset.assetName + ' · ' + report.asset.assetTag}"></h3><p class="muted"><span th:text="${report.submittedBy}"></span> · <time th:text="${#temporals.format(report.submittedAt, 'dd MMM yyyy, HH:mm')}"></time></p></div>
+            <span class="badge" th:text="${report.status.name() == 'PENDING' ? 'Awaiting review' : (report.status.name() == 'APPROVED' ? 'Approved' : 'Further work requested')}"></span></div>
+        <h4>Repair notes</h4><p class="asset-notes" th:text="${report.repairNotes}"></p>
+        <div th:if="${report.reviewedAt != null}"><h4>Administrator feedback</h4><p class="asset-notes" th:text="${report.reviewNotes}"></p><p class="muted"><span th:text="${report.reviewedBy}"></span> · <span th:text="${#temporals.format(report.reviewedAt, 'dd MMM yyyy, HH:mm')}"></span></p></div>
+        <form class="repair-review" th:if="${adminReview and report.status.name() == 'PENDING'}" th:action="@{/admin/assets/{id}/repairs/{reportId}/review(id=${report.asset.assetId},reportId=${report.reportId})}" method="post">
+            <label th:for="${'review-notes-' + report.reportId}">Review notes <span aria-hidden="true">*</span></label>
+            <textarea th:id="${'review-notes-' + report.reportId}" name="notes" required maxlength="2000" rows="3" placeholder="Record your verification or explain the further work needed"></textarea>
+            <div class="actions"><button class="btn" type="submit" name="decision" value="approve">Approve &amp; mark working</button><button class="btn secondary" type="submit" name="decision" value="return">Request further work</button></div>
+        </form>
+    </article>
+</section>
+</body></html>

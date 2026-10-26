@@ -20,7 +20,7 @@ public class Faq {
     private String question;
 
     @Lob
-    @Column(name = "Answer", nullable = false)
+    @Column(name = "Answer", nullable = false, columnDefinition = "MEDIUMTEXT")
     private String answer;
 
     @Enumerated(EnumType.STRING)

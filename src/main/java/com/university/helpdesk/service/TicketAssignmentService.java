@@ -307,10 +307,15 @@ public class TicketAssignmentService {
         active.setEndDate(LocalDateTime.now());
         assignmentRepository.save(active);
         activityLogService.log(actor, "TICKET_UNASSIGNED", "TICKET", ticketId, null);
+        TicketStatus oldStatus = ticket.getStatus();
+        if (oldStatus == TicketStatus.ASSIGNED) {
+            ticket.setStatus(TicketStatus.NEW);
+            ticketRepository.save(ticket);
+        }
 
         TicketStatusHistory history = new TicketStatusHistory();
         history.setTicket(ticket);
-        history.setOldStatus(ticket.getStatus());
+        history.setOldStatus(oldStatus);
         history.setNewStatus(ticket.getStatus());
         history.setChangedByUser(actor);
         history.setReason("Assignment to " + active.getAssignedToUser().getFirstName() + " " + active.getAssignedToUser().getLastName() + " was removed.");

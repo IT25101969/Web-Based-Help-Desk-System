@@ -19,14 +19,19 @@ public class TicketSubmissionForm {
     private String subject;
 
     @NotBlank(message = "Description is required.")
+    @Size(max = 20000, message = "Description cannot exceed 20000 characters.")
     private String description;
 
     @Size(max = 150, message = "Subtype detail cannot exceed 150 characters.")
     private String subtypeDetail;
 
+    @Size(max = 30, message = "Severity cannot exceed 30 characters.")
     private String severity;
 
     private MultipartFile attachment;
+    private Long assetId;
+    public Long getAssetId() { return assetId; }
+    public void setAssetId(Long assetId) { this.assetId = assetId; }
 
     public Long getCategoryId() {
         return categoryId;

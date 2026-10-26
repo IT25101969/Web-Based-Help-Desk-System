@@ -107,9 +107,8 @@ public class CustomUserDetailsService implements UserDetailsService {
         boolean locked =
                 user.getAccountStatus()
                         == AccountStatus.LOCKED
-                        && user.getLockedUntil() != null
-                        && user.getLockedUntil()
-                        .isAfter(LocalDateTime.now());
+                        && (user.getLockedUntil() == null || user.getLockedUntil()
+                        .isAfter(LocalDateTime.now()));
 
         return User
                 .withUsername(user.getUniversityId())

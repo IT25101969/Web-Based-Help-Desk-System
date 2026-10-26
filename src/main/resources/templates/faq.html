@@ -5,71 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FAQ & Knowledge Base | University Help Desk</title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
-    <style>
-        .filter-bar { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; margin-top: 12px; }
-        .filter-group { flex: 1 1 240px; }
-        .faq-item { border-left: 4px solid #2563eb; padding-left: 18px; margin-bottom: 18px; }
-        .faq-header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
-        .faq-question { font-size: 1.15rem; font-weight: 700; color: #0f172a; margin: 0; }
-        .faq-answer { line-height: 1.6; color: #334155; white-space: pre-line; margin: 8px 0 12px; }
-        .faq-help-link { font-size: 0.92rem; font-weight: 600; color: #2563eb; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
-        .faq-help-link:hover { text-decoration: underline; }
-        .no-results { text-align: center; padding: 36px 18px; }
-        .no-results h2 { margin-bottom: 8px; color: #1e293b; }
-        .no-results p { color: #64748b; margin-bottom: 20px; }
-        .result-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; color: #64748b; font-size: 0.95rem; }
-    </style>
+<link rel="stylesheet" th:href="@{/css/workspace-polish.css}">
 </head>
-<body>
-<header class="topbar">
-    <a th:href="@{/dashboard}" class="topbar-brand">
-        <strong>University</strong> <span>Help Desk</span>
-    </a>
-    <nav class="topbar-nav" sec:authorize="hasRole('Student')">
-        <a th:href="@{/student/dashboard}">Dashboard</a>
-        <a th:href="@{/student/tickets}">My Tickets</a>
-        <a th:href="@{/student/tickets/new}">Submit Ticket</a>
-        <a th:href="@{/faq}" class="active">FAQ</a>
-        <a th:href="@{/notifications}">Notifications</a>
-    </nav>
-    <nav class="topbar-nav" sec:authorize="hasAnyRole('Help Desk Support Staff', 'Department Support Team Member')">
-        <a th:href="@{/staff/dashboard}">Dashboard</a>
-        <a th:href="@{/staff/tickets}">Ticket Queue</a>
-        <a th:href="@{/faq}" class="active">FAQ</a>
-        <a th:href="@{/notifications}">Notifications</a>
-    </nav>
-    <nav class="topbar-nav" sec:authorize="hasRole('Department Manager')">
-        <a th:href="@{/manager/dashboard}">Dashboard</a>
-        <a th:href="@{/manager/tickets}">Ticket Queue</a>
-        <a th:href="@{/faq}" class="active">FAQ</a>
-        <a th:href="@{/notifications}">Notifications</a>
-    </nav>
-    <nav class="topbar-nav" sec:authorize="hasRole('System Administrator')">
-        <a th:href="@{/admin/dashboard}">Dashboard</a>
-        <a th:href="@{/admin/tickets}">Tickets</a>
-        <a th:href="@{/admin/faqs}">FAQ Admin</a>
-        <a th:href="@{/admin/reports}">Reports</a>
-        <a th:href="@{/admin/users}">Users</a>
-        <a th:href="@{/faq}" class="active">FAQ</a>
-        <a th:href="@{/notifications}">Notifications</a>
-    </nav>
-    <nav class="topbar-nav" sec:authorize="hasRole('University Management')">
-        <a th:href="@{/management/dashboard}">Dashboard</a>
-        <a th:href="@{/management/reports}">Reports</a>
-        <a th:href="@{/faq}" class="active">FAQ</a>
-        <a th:href="@{/notifications}">Notifications</a>
-    </nav>
-    <div class="topbar-user">
-        <form th:action="@{/logout}" method="post" style="display:inline; margin:0;">
-            <button type="submit" class="btn-logout">Logout</button>
-        </form>
-    </div>
-</header>
+<body class="app-page refined-page faq-page">
+<header th:replace="~{fragments/topbar :: topbar('faq')}"></header>
 
 <div class="container">
+    <div class="page-header page-hero">
+        <div><span class="page-eyebrow">KNOWLEDGE BASE</span><h1 class="page-title">Help &amp; frequently asked questions</h1><p class="page-subtitle">Search verified solutions, troubleshooting steps, and university service information.</p></div>
+    </div>
     <div class="card">
-        <h1>Help & Frequently Asked Questions</h1>
-        <p class="muted">Search for instant solutions, troubleshooting steps, and university service information.</p>
 
         <div th:if="${invalidCategoryAttempted}" class="alert error">
             The requested category is not available or inactive. Showing all available FAQs.
@@ -79,7 +24,7 @@
             <div class="filter-bar">
                 <div class="filter-group" style="flex: 2 1 320px;">
                     <label for="q">Keyword Search</label>
-                    <input type="text" id="q" name="q" th:value="${query}" placeholder="Search by question, solution, or category...">
+                    <input type="search" id="q" name="q" maxlength="200" th:value="${query}" placeholder="Search by question, solution, or category...">
                 </div>
                 <div class="filter-group">
                     <label for="categoryId">Category</label>
@@ -103,7 +48,7 @@
 
     <div class="result-meta" th:if="${!#lists.isEmpty(faqs)}">
         <span th:text="${'Showing ' + #lists.size(faqs) + ' published solution' + (#lists.size(faqs) == 1 ? '' : 's') + (selectedCategory != null ? ' in ' + selectedCategory.categoryName : '')}"></span>
-        <a class="btn secondary" style="font-size: 13px; padding: 6px 12px;" th:href="@{/student/tickets/new(categoryId=${activeCategoryForTicket})}">Still Need Help?</a>
+        <a sec:authorize="hasRole('Student') and hasAuthority('SUBMIT_TICKET')" class="btn secondary" style="font-size: 13px; padding: 6px 12px;" th:href="@{/student/tickets/new(categoryId=${activeCategoryForTicket})}">Still Need Help?</a>
     </div>
 
     <!-- FAQ Results List -->
@@ -115,12 +60,12 @@
             </div>
             <p class="faq-answer" th:text="${faq.answer}"></p>
             <div>
-                <a th:if="${faq.category != null and faq.category.status == 'ACTIVE'}"
+                <a sec:authorize="hasRole('Student') and hasAuthority('SUBMIT_TICKET')" th:if="${faq.category != null and faq.category.status == 'ACTIVE'}"
                    class="faq-help-link"
                    th:href="@{/student/tickets/new(categoryId=${faq.category.categoryId})}">
                     Still need help? Submit a ticket in <span th:text="${faq.category.categoryName}"></span> &rarr;
                 </a>
-                <a th:if="${faq.category == null or faq.category.status != 'ACTIVE'}"
+                <a sec:authorize="hasRole('Student') and hasAuthority('SUBMIT_TICKET')" th:if="${faq.category == null or faq.category.status != 'ACTIVE'}"
                    class="faq-help-link"
                    th:href="@{/student/tickets/new}">
                     Still need help? Submit a ticket &rarr;
@@ -145,12 +90,12 @@
             There are currently no published FAQs available in the knowledge base.
         </p>
         <div class="actions" style="justify-content: center;">
-            <a th:if="${activeCategoryForTicket != null}"
+            <a sec:authorize="hasRole('Student') and hasAuthority('SUBMIT_TICKET')" th:if="${activeCategoryForTicket != null}"
                class="btn"
                th:href="@{/student/tickets/new(categoryId=${activeCategoryForTicket})}">
                 Submit a Support Ticket in <span th:text="${selectedCategory.categoryName}"></span>
             </a>
-            <a th:if="${activeCategoryForTicket == null}"
+            <a sec:authorize="hasRole('Student') and hasAuthority('SUBMIT_TICKET')" th:if="${activeCategoryForTicket == null}"
                class="btn"
                th:href="@{/student/tickets/new}">
                 Submit a Support Ticket

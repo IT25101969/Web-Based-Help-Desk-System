@@ -1,0 +1,8 @@
+<!DOCTYPE html><html lang="en" xmlns:th="http://www.thymeleaf.org"><body>
+<div th:fragment="pager" class="ticket-pager" th:if="${ticketPage != null}">
+    <p class="muted"><strong th:text="${ticketPage.totalElements}">0</strong> results · Page <span th:text="${ticketPage.totalPages == 0 ? 1 : ticketPage.number + 1}">1</span> of <span th:text="${ticketPage.totalPages == 0 ? 1 : ticketPage.totalPages}">1</span></p>
+    <nav aria-label="Ticket pages" class="pager-actions">
+        <a class="btn secondary btn-sm" th:if="${ticketPage.hasPrevious()}" th:href="@{${basePath} + '/tickets'(q=${q},status=${selectedStatus},priority=${selectedPriority},departmentId=${selectedDepartmentId},unmappedOnly=${selectedUnmappedOnly},assignmentState=${selectedAssignmentState},sort=${selectedSort},size=${ticketPage.size},page=${ticketPage.number - 1})}">← Previous</a>
+        <a class="btn secondary btn-sm" th:if="${ticketPage.hasNext()}" th:href="@{${basePath} + '/tickets'(q=${q},status=${selectedStatus},priority=${selectedPriority},departmentId=${selectedDepartmentId},unmappedOnly=${selectedUnmappedOnly},assignmentState=${selectedAssignmentState},sort=${selectedSort},size=${ticketPage.size},page=${ticketPage.number + 1})}">Next →</a>
+    </nav>
+</div></body></html>

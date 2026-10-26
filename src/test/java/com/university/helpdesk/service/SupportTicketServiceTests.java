@@ -173,6 +173,14 @@ public class SupportTicketServiceTests {
         assignRole(nonSupportUser, roleManagement);
     }
 
+    @Test void unassignReturnsAssignedTicketToNewQueue() {
+        Ticket ticket = createTicket(catIT, "Unassignment regression");
+        assignmentService.assign(ticket.getTicketId(), staffIT1.getUserId(), adminUser.getUniversityId(), TicketPriority.MEDIUM);
+        assignmentService.unassign(ticket.getTicketId(), adminUser.getUniversityId());
+        assertEquals(TicketStatus.NEW, ticketRepository.findById(ticket.getTicketId()).orElseThrow().getStatus());
+        assertTrue(assignmentRepository.findByTicketTicketIdAndStatus(ticket.getTicketId(), AssignmentStatus.ACTIVE).isEmpty());
+    }
+
     private Role getOrCreateRole(String roleName) {
         return roleRepository.findByRoleName(roleName)
                 .orElseGet(() -> {

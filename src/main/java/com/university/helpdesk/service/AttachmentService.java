@@ -12,12 +12,20 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.InputStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import java.nio.file.*;
 import java.util.Set;
 import java.util.UUID;
 
 @Service
 public class AttachmentService {
+    private static final Logger log = LoggerFactory.getLogger(AttachmentService.class);
 
     private static final long MAX_FILE_SIZE = 5L * 1024L * 1024L;
 
@@ -49,7 +57,7 @@ public class AttachmentService {
         this.uploadRoot = Paths.get(uploadDir).toAbsolutePath().normalize();
     }
 
-    @Transactional
+    @Transactional(rollbackFor = IOException.class)
     public Attachment store(Ticket ticket, MultipartFile file) throws IOException {
         if (file == null || file.isEmpty()) {
             return null;
@@ -63,6 +71,9 @@ public class AttachmentService {
                 ? "attachment"
                 : Paths.get(file.getOriginalFilename()).getFileName().toString().trim();
 
+        if (originalName.isBlank() || originalName.length() > 255 || originalName.chars().anyMatch(Character::isISOControl)) {
+            throw new IllegalArgumentException("Attachment name must contain 1 to 255 characters without control characters.");
+        }
         String extension = "";
         int dot = originalName.lastIndexOf('.');
         if (dot >= 0 && dot < originalName.length() - 1) {
@@ -87,7 +98,19 @@ public class AttachmentService {
             throw new IllegalArgumentException("Invalid attachment path.");
         }
 
-        Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override public void afterCompletion(int status) {
+                    if (status != STATUS_COMMITTED) removeFile(target);
+                }
+            });
+        }
+        try (InputStream input = file.getInputStream()) {
+            Files.copy(input, target);
+        } catch (IOException ex) {
+            removeFile(target);
+            throw ex;
+        }
 
         Attachment attachment = new Attachment();
         attachment.setTicket(ticket);
@@ -101,7 +124,7 @@ public class AttachmentService {
     @Transactional(readOnly = true)
     public Attachment getAttachment(Long id) {
         return attachmentRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Attachment was not found."));
+                .orElseThrow(() -> new ResourceNotFoundException("Attachment was not found."));
     }
 
     public Resource load(Attachment attachment) throws IOException {
@@ -111,7 +134,7 @@ public class AttachmentService {
         }
         Resource resource = new UrlResource(path.toUri());
         if (!resource.exists() || !resource.isReadable()) {
-            throw new NoSuchFileException(path.toString());
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Attachment file is no longer available.");
         }
         return resource;
     }
@@ -128,14 +151,22 @@ public class AttachmentService {
                 throw new org.springframework.security.access.AccessDeniedException("You are not authorized to delete this attachment.");
             }
         }
-        try {
-            Path path = uploadRoot.resolve(attachment.getFilePath()).normalize();
-            if (!path.startsWith(uploadRoot)) {
-                throw new SecurityException("Invalid attachment path.");
-            }
-            Files.deleteIfExists(path);
-        } catch (IOException ignored) {
+        Path path = uploadRoot.resolve(attachment.getFilePath()).normalize();
+        if (!path.startsWith(uploadRoot)) {
+            throw new SecurityException("Invalid attachment path.");
         }
         attachmentRepository.delete(attachment);
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override public void afterCommit() { removeFile(path); }
+            });
+        } else {
+            removeFile(path);
+        }
+    }
+
+    private void removeFile(Path path) {
+        try { Files.deleteIfExists(path); }
+        catch (IOException ex) { log.warn("Could not remove attachment file {}", path.getFileName(), ex); }
     }
 }

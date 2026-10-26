@@ -1,0 +1,4 @@
+<!DOCTYPE html><html lang="en" xmlns:th="http://www.thymeleaf.org"><body>
+<span th:fragment="logo" class="university-logo"><img th:src="@{/images/sliit-uni.jpg}" alt="SLIIT UNI — The Knowledge University" width="2048" height="2048"></span>
+<a th:fragment="auth" th:href="@{/}" class="auth-brand university-brand" aria-label="SLIIT UNI Help Desk home"><span th:replace="~{fragments/university-brand :: logo}"></span><span class="university-service">Help Desk<span>YOUR CAMPUS, CONNECTED.</span></span></a>
+</body></html>

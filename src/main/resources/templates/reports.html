@@ -6,31 +6,20 @@
     <title>Help Desk Reports</title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" th:href="@{/css/workspace-polish.css}">
 </head>
-<body>
-<header class="topbar">
-    <a th:href="@{${basePath} + '/dashboard'}" class="topbar-brand">
-        <strong>University</strong> <span>Help Desk</span>
-    </a>
-    <nav class="topbar-nav">
-        <a th:href="@{${basePath} + '/dashboard'}">Dashboard</a>
-        <a th:href="@{${basePath} + '/reports'}" class="active">Reports</a>
-        <a th:href="@{/notifications}">Notifications</a>
-    </nav>
-    <div class="topbar-user">
-        <form th:action="@{/logout}" method="post" style="display:inline; margin:0;">
-            <button type="submit" class="btn-logout">Logout</button>
-        </form>
-    </div>
-</header>
+<body class="app-page refined-page reports-page">
+<header th:replace="~{fragments/topbar :: topbar('reports')}"></header>
 
 <div class="container">
     <div th:if="${error}" class="alert error" th:text="${error}"></div>
 
+    <div class="page-header page-hero">
+        <div><span class="page-eyebrow">INSIGHTS / PERFORMANCE</span><h1 class="page-title">Reports &amp; monitoring</h1><p class="page-subtitle">Measure demand, resolution performance, and team workload across the university.</p></div>
+    </div>
     <div class="card">
-        <h1>Reports &amp; Monitoring</h1>
         <form method="get" th:action="@{${basePath} + '/reports'}">
-            <div class="grid grid-2">
+            <div class="grid report-filters">
                 <label>Start date
                     <input type="date" name="start" th:value="${start}">
                 </label>
@@ -48,7 +37,7 @@
                     </select>
                 </label>
             </div>
-            <div class="actions" style="margin-top: 14px;">
+            <div class="actions report-filter-actions">
                 <button class="btn" type="submit">Apply Filters</button>
                 <a class="btn secondary"
                    th:href="@{${basePath} + '/reports/export.csv'(start=${start},end=${end},departmentId=${selectedDepartmentId})}">
@@ -58,25 +47,14 @@
         </form>
     </div>
 
-    <div class="grid grid-2">
-        <div class="card">
-            <h3>Total Tickets</h3>
-            <p style="font-size: 24px; font-weight: 700; margin: 4px 0;" th:text="${summary.totalTickets}"></p>
+    <div class="metric-grid">
+        <div class="metric-card"><span class="metric-label">Total tickets</span><strong class="metric-value" th:text="${summary.totalTickets}">0</strong>
         </div>
-        <div class="card">
-            <h3>Resolution Rate</h3>
-            <p style="font-size: 24px; font-weight: 700; margin: 4px 0;"
-               th:text="${#numbers.formatDecimal(summary.resolutionRate,1,1) + '%'}"></p>
+        <div class="metric-card success"><span class="metric-label">Resolution rate</span><strong class="metric-value" th:text="${#numbers.formatDecimal(summary.resolutionRate,1,1) + '%'}">0%</strong>
         </div>
-        <div class="card">
-            <h3>Average Response</h3>
-            <p style="font-size: 24px; font-weight: 700; margin: 4px 0;"
-               th:text="${#numbers.formatDecimal(summary.averageResponseHours,1,2) + ' hours'}"></p>
+        <div class="metric-card info"><span class="metric-label">Average response</span><strong class="metric-value" th:text="${#numbers.formatDecimal(summary.averageResponseHours,1,2) + 'h'}">0h</strong>
         </div>
-        <div class="card">
-            <h3>Average Resolution</h3>
-            <p style="font-size: 24px; font-weight: 700; margin: 4px 0;"
-               th:text="${#numbers.formatDecimal(summary.averageResolutionHours,1,2) + ' hours'}"></p>
+        <div class="metric-card warning"><span class="metric-label">Average resolution</span><strong class="metric-value" th:text="${#numbers.formatDecimal(summary.averageResolutionHours,1,2) + 'h'}">0h</strong>
         </div>
     </div>
 
@@ -84,19 +62,19 @@
     <div class="grid grid-2" id="chartsContainer" th:if="${summary.totalTickets > 0}">
         <div class="card">
             <h2>Status Distribution</h2>
-            <div style="max-height: 280px; display: flex; justify-content: center;">
+            <div class="chart-frame">
                 <canvas id="statusChart"></canvas>
             </div>
         </div>
         <div class="card">
             <h2>Ticket Volume by Department</h2>
-            <div style="max-height: 280px;">
+            <div class="chart-frame">
                 <canvas id="deptChart"></canvas>
             </div>
         </div>
-        <div class="card" style="grid-column: 1 / -1;" th:if="${not #maps.isEmpty(summary.activeWorkloadByStaff)}">
+        <div class="card span-all" th:if="${not #maps.isEmpty(summary.activeWorkloadByStaff)}">
             <h2>Active Staff Workload</h2>
-            <div style="max-height: 280px;">
+            <div class="chart-frame">
                 <canvas id="workloadChart"></canvas>
             </div>
         </div>
@@ -105,7 +83,8 @@
     <!-- Tables Section -->
     <div class="card">
         <h2>Status Summary</h2>
-        <table>
+        <div class="table-responsive" tabindex="0" role="region" aria-label="Scrollable data table">
+<table>
             <thead>
                 <tr>
                     <th>New</th>
@@ -127,12 +106,14 @@
                 </tr>
             </tbody>
         </table>
+</div>
     </div>
 
     <div class="grid grid-2">
         <div class="card">
             <h2>Ticket Volume by Department</h2>
-            <table>
+            <div class="table-responsive" tabindex="0" role="region" aria-label="Scrollable data table">
+<table>
                 <thead>
                     <tr><th>Department</th><th>Volume</th></tr>
                 </thead>
@@ -146,11 +127,13 @@
                     </tr>
                 </tbody>
             </table>
+</div>
         </div>
 
         <div class="card">
             <h2>Active Workload</h2>
-            <table>
+            <div class="table-responsive" tabindex="0" role="region" aria-label="Scrollable data table">
+<table>
                 <thead>
                     <tr><th>Staff Member</th><th>Active Tickets</th></tr>
                 </thead>
@@ -164,6 +147,7 @@
                     </tr>
                 </tbody>
             </table>
+</div>
         </div>
     </div>
 </div>
@@ -213,7 +197,7 @@
                         datasets: [{
                             label: 'Tickets',
                             data: deptValues,
-                            backgroundColor: '#2563eb'
+                            backgroundColor: '#8178e7'
                         }]
                     },
                     options: {
@@ -238,7 +222,7 @@
                         datasets: [{
                             label: 'Active Assigned Tickets',
                             data: workloadValues,
-                            backgroundColor: '#8b5cf6'
+                            backgroundColor: '#a49ced'
                         }]
                     },
                     options: {

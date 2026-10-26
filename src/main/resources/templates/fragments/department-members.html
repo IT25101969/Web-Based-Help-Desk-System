@@ -1,0 +1,10 @@
+<!DOCTYPE html><html lang="en" xmlns:th="http://www.thymeleaf.org"><body>
+<details th:fragment="members(d)" class="catalog-editor"><summary>Manage team access <span class="badge" th:text="${departmentMembers[d.departmentId] == null ? 0 : #lists.size(departmentMembers[d.departmentId])}"></span></summary>
+    <div class="catalog-form">
+        <p class="form-hint">Support staff can receive assignments. Department managers can manage their team’s queue. Updating access signs that account out.</p>
+        <p class="form-hint" th:if="${departmentMembers[d.departmentId] == null}">No team members yet. Add an eligible staff account below.</p>
+        <ul class="member-list"><li th:each="m : ${departmentMembers[d.departmentId]}"><span><strong th:text="${m.user.firstName + ' ' + m.user.lastName}"></strong><small th:text="${m.user.universityId}"></small></span><form th:action="@{/admin/service-setup/memberships}" method="post"><input type="hidden" name="departmentId" th:value="${d.departmentId}"><input type="hidden" name="userId" th:value="${m.user.userId}"><input type="hidden" name="active" value="false"><button type="submit" class="btn secondary btn-sm">Remove access</button></form></li></ul>
+        <form th:if="${!#lists.isEmpty(availableMembers[d.departmentId])}" th:action="@{/admin/service-setup/memberships}" method="post"><input type="hidden" name="departmentId" th:value="${d.departmentId}"><input type="hidden" name="active" value="true"><label th:for="${'member-' + d.departmentId}">Add a staff member or manager</label><select name="userId" th:id="${'member-' + d.departmentId}" required><option value="">Choose an account</option><option th:each="u : ${availableMembers[d.departmentId]}" th:value="${u.userId}" th:text="${u.universityId + ' · ' + u.firstName + ' ' + u.lastName}"></option></select><button class="btn btn-sm" type="submit">Add team member</button></form>
+        <p class="form-hint" th:if="${#lists.isEmpty(availableMembers[d.departmentId])}">No additional eligible accounts. Check active staff roles in User Management.</p>
+    </div>
+</details></body></html>

@@ -3,43 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Access Denied - University Help Desk</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #f1f5f9;
-            margin: 0;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .card {
-            width: 460px;
-            background: white;
-            padding: 32px;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0,0,0,.1);
-            text-align: center;
-        }
-        h1 { color: #991b1b; }
-        p { color: #475569; }
-        a {
-            display: inline-block;
-            margin-top: 16px;
-            padding: 10px 16px;
-            background: #2563eb;
-            color: white;
-            border-radius: 6px;
-            text-decoration: none;
-        }
-    </style>
+    <title>Access Denied - SLIIT UNI Help Desk</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
-<body>
-<div class="card">
+<body class="auth-page">
+<div class="auth-card">
+    <a th:replace="~{fragments/university-brand :: auth}"></a>
     <h1>Access Denied</h1>
     <p>You do not have permission to access this page.</p>
-    <a th:href="@{/dashboard}">Return to Dashboard</a>
+    <a class="btn" th:href="@{/dashboard}">Return to Dashboard</a>
 </div>
 </body>
 </html>

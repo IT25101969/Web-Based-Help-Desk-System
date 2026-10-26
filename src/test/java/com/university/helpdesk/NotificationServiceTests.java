@@ -320,7 +320,7 @@ public class NotificationServiceTests {
         assertEquals(EmailQueueStatus.PENDING, updated.getStatus());
         assertNotNull(updated.getNextRetryAt());
         assertNotNull(updated.getLastError());
-        assertTrue(updated.getLastError().contains("SMTP connection refused"));
+        assertEquals("SMTP delivery failed. Check mail configuration and connectivity.", updated.getLastError());
     }
 
     @Test

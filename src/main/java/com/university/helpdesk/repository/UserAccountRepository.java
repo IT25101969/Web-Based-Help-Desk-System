@@ -20,6 +20,13 @@ public interface UserAccountRepository extends JpaRepository<UserAccount, Long> 
 
     boolean existsByEmail(String email);
 
+    boolean existsByUniversityIdIgnoreCaseAndUserIdNot(String universityId, Long userId);
+    boolean existsByEmailIgnoreCaseAndUserIdNot(String email, Long userId);
+
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("select u from UserAccount u where u.userId = :id")
+    Optional<UserAccount> findForProfileUpdate(@org.springframework.data.repository.query.Param("id") Long id);
+
     long countByAccountStatus(com.university.helpdesk.entity.AccountStatus accountStatus);
 
     long countByFailedLoginAttemptsGreaterThanEqual(int attempts);

@@ -5,150 +5,34 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Notification Center - University Help Desk</title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
-    <style>
-        .unread-card {
-            border-left: 4px solid #2563eb;
-            background-color: #f8faff;
-        }
-        .read-card {
-            border-left: 4px solid #cbd5e1;
-            opacity: 0.92;
-        }
-        .tab-bar {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #e2e8f0;
-            padding-bottom: 8px;
-        }
-        .tab-link {
-            padding: 8px 16px;
-            text-decoration: none;
-            color: #475569;
-            font-weight: 600;
-            border-radius: 6px;
-        }
-        .tab-link.active {
-            background-color: #2563eb;
-            color: #ffffff;
-        }
-        .badge-SUBMITTED { background: #e0e7ff; color: #3730a3; }
-        .badge-ASSIGNED { background: #dbeafe; color: #1e40af; }
-        .badge-UPDATED { background: #fef3c7; color: #92400e; }
-        .badge-ESCALATED { background: #fee2e2; color: #991b1b; font-weight: 700; }
-        .badge-RESOLVED { background: #dcfce7; color: #166534; }
-        .badge-CLOSED { background: #f1f5f9; color: #475569; }
-        .badge-SYSTEM { background: #fae8ff; color: #86198f; font-weight: 600; }
-        .notification-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-        .notification-content {
-            font-size: 15px;
-            line-height: 1.5;
-            margin: 10px 0;
-            color: #1e293b;
-        }
-        .notification-footer {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 14px;
-            padding-top: 10px;
-            border-top: 1px solid #f1f5f9;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-        .ticket-link-btn {
-            font-size: 13px;
-            font-weight: 600;
-            color: #2563eb;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-        }
-        .ticket-link-btn:hover {
-            text-decoration: underline;
-        }
-    </style>
+<link rel="stylesheet" th:href="@{/css/workspace-polish.css}">
 </head>
-<body>
+<body class="app-page refined-page notifications-page">
 
-<header class="topbar">
-    <a th:href="@{/dashboard}" class="topbar-brand">
-        <strong>University</strong> <span>Help Desk</span>
-    </a>
-    <nav class="topbar-nav" sec:authorize="hasRole('Student')">
-        <a th:href="@{/student/dashboard}">Dashboard</a>
-        <a th:href="@{/student/tickets}">My Tickets</a>
-        <a th:href="@{/student/tickets/new}">Submit Ticket</a>
-        <a th:href="@{/faq}">FAQ</a>
-        <a th:href="@{/notifications}" class="active">Notifications</a>
-        <a th:href="@{/notifications/preferences}">Preferences</a>
-    </nav>
-    <nav class="topbar-nav" sec:authorize="hasAnyRole('Help Desk Support Staff', 'Department Support Team Member')">
-        <a th:href="@{/staff/dashboard}">Dashboard</a>
-        <a th:href="@{/staff/tickets}">Ticket Queue</a>
-        <a th:href="@{/faq}">FAQ</a>
-        <a th:href="@{/notifications}" class="active">Notifications</a>
-        <a th:href="@{/notifications/preferences}">Preferences</a>
-    </nav>
-    <nav class="topbar-nav" sec:authorize="hasRole('Department Manager')">
-        <a th:href="@{/manager/dashboard}">Dashboard</a>
-        <a th:href="@{/manager/tickets}">Ticket Queue</a>
-        <a th:href="@{/faq}">FAQ</a>
-        <a th:href="@{/notifications}" class="active">Notifications</a>
-        <a th:href="@{/notifications/preferences}">Preferences</a>
-    </nav>
-    <nav class="topbar-nav" sec:authorize="hasRole('System Administrator')">
-        <a th:href="@{/admin/dashboard}">Dashboard</a>
-        <a th:href="@{/admin/tickets}">Tickets</a>
-        <a th:href="@{/admin/faqs}">FAQ Admin</a>
-        <a th:href="@{/admin/reports}">Reports</a>
-        <a th:href="@{/admin/users}">Users</a>
-        <a th:href="@{/notifications}" class="active">Notifications</a>
-        <a th:href="@{/notifications/preferences}">Preferences</a>
-    </nav>
-    <nav class="topbar-nav" sec:authorize="hasRole('University Management')">
-        <a th:href="@{/management/dashboard}">Dashboard</a>
-        <a th:href="@{/management/reports}">Reports</a>
-        <a th:href="@{/notifications}" class="active">Notifications</a>
-        <a th:href="@{/notifications/preferences}">Preferences</a>
-    </nav>
-    <div class="topbar-user">
-        <form th:action="@{/logout}" method="post" style="display:inline; margin:0;">
-            <button type="submit" class="btn-logout">Logout</button>
-        </form>
-    </div>
-</header>
+<header th:replace="~{fragments/topbar :: topbar('notifications')}"></header>
 
 <div class="container">
 
     <div th:if="${successMessage}" class="alert success" th:text="${successMessage}"></div>
     <div th:if="${errorMessage}" class="alert error" th:text="${errorMessage}"></div>
 
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
+    <div class="page-header page-hero">
         <div>
-            <h1 style="margin:0 0 4px 0;">Notifications</h1>
-            <p class="muted" style="margin:0;">
+            <span class="page-eyebrow">YOUR INBOX</span><h1 class="page-title">Notifications</h1>
+            <p class="page-subtitle">
                 Stay informed on your help desk ticket updates and system alerts.
-                <span th:if="${unreadCount > 0}" class="badge" style="background:#2563eb; color:#fff; margin-left:6px;" th:text="${unreadCount + ' unread'}"></span>
+                <span th:if="${unreadCount > 0}" class="badge badge-status-assigned" th:text="${unreadCount + ' unread'}"></span>
             </p>
         </div>
 
-        <div class="actions" style="display:flex; gap:8px; align-items:center;">
-            <a th:href="@{/notifications/preferences}" class="btn secondary" style="font-size:13px;">Notification Preferences</a>
-            <form th:if="${unreadCount > 0}" th:action="@{/notifications/read-all}" method="post" style="display:inline; margin:0;">
-                <button type="submit" class="btn secondary" style="font-size:13px;">Mark All as Read</button>
+        <div class="button-cluster">
+            <a th:href="@{/notifications/preferences}" class="btn secondary">Preferences</a>
+            <form th:if="${unreadCount > 0}" th:action="@{/notifications/read-all}" method="post" class="inline-form">
+                <button type="submit" class="btn secondary">Mark all as read</button>
             </form>
-            <form th:if="${!#lists.isEmpty(notifications)}" th:action="@{/notifications/clear-all}" method="post" style="display:inline; margin:0;">
-                <button type="submit" class="btn danger" style="font-size:13px;" onclick="return confirm('Are you sure you want to delete all notifications?');">
-                    Clear All
+            <form th:if="${!#lists.isEmpty(notifications)}" th:action="@{/notifications/clear-all}" method="post" class="inline-form">
+                <button type="submit" class="btn danger" onclick="return confirm('Are you sure you want to delete all notifications?');">
+                    Clear all
                 </button>
             </form>
         </div>
@@ -156,22 +40,42 @@
 
     <!-- Filter Tabs -->
     <div class="tab-bar">
-        <a th:href="@{/notifications(filter='all')}"
+        <a th:href="@{/notifications(filter='all',type=${selectedType},size=${notificationPage.size})}"
            th:class="'tab-link ' + (${currentFilter == 'all' ? 'active' : ''})">
             All Notifications
         </a>
-        <a th:href="@{/notifications(filter='unread')}"
+        <a th:href="@{/notifications(filter='unread',type=${selectedType},size=${notificationPage.size})}"
            th:class="'tab-link ' + (${currentFilter == 'unread' ? 'active' : ''})">
             Unread Only (<span th:text="${unreadCount}">0</span>)
         </a>
     </div>
 
     <!-- Notifications List -->
-    <div th:if="${#lists.isEmpty(notifications)}" class="card" style="text-align:center; padding:48px 24px;">
+    <form method="get" th:action="@{/notifications}" class="notification-filters card">
+        <input type="hidden" name="filter" th:value="${currentFilter}">
+        <div>
+            <label for="notification-type">Alert type</label>
+            <select id="notification-type" name="type">
+                <option value="">All alert types</option>
+                <option th:each="option : ${notificationTypes}" th:value="${option}" th:text="${#strings.capitalize(#strings.toLowerCase(option))}" th:selected="${option == selectedType}"></option>
+            </select>
+        </div>
+        <div>
+            <label for="notification-size">Updates per page</label>
+            <select id="notification-size" name="size">
+                <option th:each="amount : ${ {5,10,25,50} }" th:value="${amount}" th:text="${amount}" th:selected="${amount == notificationPage.size}"></option>
+            </select>
+        </div>
+        <button class="btn" type="submit">Apply filters</button>
+        <a class="btn secondary" th:href="@{/notifications}">Reset</a>
+    </form>
+    <p class="muted" aria-live="polite" th:text="${notificationPage.totalElements + ' matching updates · Newest first'}"></p>
+    <div th:if="${#lists.isEmpty(notifications)}" class="card empty-state">
         <h3 style="color:#64748b; margin-bottom:8px;">No notifications found</h3>
-        <p class="muted" th:if="${currentFilter == 'unread'}">You have caught up with all your updates!</p>
-        <p class="muted" th:if="${currentFilter != 'unread'}">You do not have any notifications yet.</p>
-        <div style="margin-top:16px;">
+        <p class="muted" th:if="${selectedType != null}">No updates match this alert type. Try another type or reset the filters.</p>
+        <p class="muted" th:if="${selectedType == null and currentFilter == 'unread'}">You have caught up with all your updates!</p>
+        <p class="muted" th:if="${selectedType == null and currentFilter != 'unread'}">You do not have any notifications yet.</p>
+        <div class="mt-3">
             <a th:href="@{/dashboard}" class="btn">Return to Dashboard</a>
         </div>
     </div>
@@ -183,11 +87,11 @@
         <div class="notification-header">
             <div style="display:flex; align-items:center; gap:8px;">
                 <span th:class="'badge badge-' + ${n.notificationType}"
-                      th:text="${n.notificationType}">TYPE</span>
-                <span th:if="${!n.readStatus}" class="badge" style="background:#dbeafe; color:#1d4ed8; font-size:11px;">NEW</span>
+                      th:text="${#strings.capitalize(#strings.toLowerCase(n.notificationType))}">TYPE</span>
+                <span th:if="${!n.readStatus}" class="badge notification-new">NEW</span>
             </div>
-            <span class="muted" style="font-size:13px;"
-                  th:text="${#temporals.format(n.createdDate, 'yyyy-MM-dd HH:mm')}">2026-09-15 08:00</span>
+            <span class="notification-date"
+                  th:text="${#temporals.format(n.createdDate, 'dd MMM yyyy, HH:mm')}">2026-09-15 08:00</span>
         </div>
 
         <div class="notification-content" th:text="${n.message}">
@@ -201,7 +105,8 @@
                    class="ticket-link-btn">
                     View Related Ticket <span th:text="'(' + ${n.ticket.referenceNo} + ')'"></span> &rarr;
                 </a>
-                <span th:if="${n.ticket == null}" class="muted" style="font-size:12px;">General Alert</span>
+                <a th:if="${n.actionUrl != null}" th:href="@{${n.actionUrl}}" class="ticket-link-btn">View equipment update &rarr;</a>
+                <span th:if="${n.ticket == null and n.actionUrl == null}" class="muted" style="font-size:12px;">General Alert</span>
             </div>
 
             <div class="actions" style="display:flex; align-items:center; gap:8px;">
@@ -213,7 +118,7 @@
                     </button>
                 </form>
                 <span th:if="${n.readStatus}" class="muted" style="font-size:12px;">
-                    Read <span th:if="${n.readDate != null}" th:text="${#temporals.format(n.readDate, 'yyyy-MM-dd HH:mm')}"></span>
+                    Read <span th:if="${n.readDate != null}" th:text="${#temporals.format(n.readDate, 'dd MMM yyyy, HH:mm')}"></span>
                 </span>
                 <form th:action="@{/notifications/{id}/delete(id=${n.notificationId})}"
                       method="post" style="display:inline; margin:0;">
@@ -228,5 +133,10 @@
 
 </div>
 
+<nav class="notification-pagination container" aria-label="Notification pages" th:if="${notificationPage.totalPages > 1}">
+    <a class="btn secondary" th:if="${notificationPage.hasPrevious()}" th:href="@{/notifications(filter=${currentFilter},type=${selectedType},size=${notificationPage.size},page=${notificationPage.number - 1})}">← Previous</a>
+    <span class="muted" th:text="${'Page ' + (notificationPage.number + 1) + ' of ' + notificationPage.totalPages}"></span>
+    <a class="btn secondary" th:if="${notificationPage.hasNext()}" th:href="@{/notifications(filter=${currentFilter},type=${selectedType},size=${notificationPage.size},page=${notificationPage.number + 1})}">Next →</a>
+</nav>
 </body>
 </html>

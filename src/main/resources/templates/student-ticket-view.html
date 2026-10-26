@@ -5,32 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title th:text="${ticket.referenceNo + ' - ' + ticket.subject}">Ticket View - University Help Desk</title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/css/workspace-polish.css}">
 </head>
-<body>
+<body class="app-page refined-page ticket-detail-page">
 
-<header class="topbar">
-    <a th:href="@{/student/dashboard}" class="topbar-brand">
-        <strong>University</strong> <span>Help Desk</span>
-    </a>
-    <nav class="topbar-nav">
-        <a th:href="@{/student/dashboard}">Dashboard</a>
-        <a th:href="@{/student/tickets}">My Tickets</a>
-        <a th:href="@{/student/tickets/new}">Submit Ticket</a>
-        <a th:href="@{/faq}">FAQ</a>
-        <a th:href="@{/notifications}">Notifications</a>
-    </nav>
-    <div class="topbar-user">
-        <form th:action="@{/logout}" method="post" style="display:inline; margin:0;">
-            <button type="submit" class="btn-logout">Logout</button>
-        </form>
-    </div>
-</header>
+<header th:replace="~{fragments/topbar :: topbar('tickets')}"></header>
 
 <main class="container">
     <!-- Breadcrumb & Actions Header -->
-    <div class="page-header">
+    <div class="page-header page-hero">
         <div>
-            <div style="font-family: monospace; font-size: 0.95rem; font-weight: 700; color: var(--primary); margin-bottom: 4px;"
+            <div class="record-ref"
                  th:text="${ticket.referenceNo}">HD-20260915-ABCD</div>
             <h1 class="page-title" th:text="${ticket.subject}">Ticket Subject</h1>
         </div>
@@ -41,28 +26,29 @@
 
     <!-- Alert Messages -->
     <div th:if="${success}" class="alert success" id="alert-success">
-        <span>✅</span>
+        <span>&#10003;</span>
         <span th:text="${success}">Action completed successfully.</span>
     </div>
     <div th:if="${error}" class="alert error" id="alert-error">
-        <span>⚠️</span>
+        <span>&#9888;</span>
         <span th:text="${error}">An error occurred.</span>
     </div>
 
     <!-- Main Ticket Overview Card -->
+    <section th:replace="~{fragments/ticket-deadline :: deadline(${ticket})}"></section>
     <div class="card">
         <div class="card-header">
             <h2 class="card-title">Ticket Information</h2>
-            <div style="display: flex; gap: 8px; align-items: center;">
-                <span class="badge badge-type" th:text="${ticket.ticketType}">INCIDENT</span>
+            <div class="button-cluster">
+                <span class="badge badge-type" th:text="${#strings.capitalize(#strings.toLowerCase(#strings.replace(ticket.ticketType.name(), '_', ' ')))}">INCIDENT</span>
                 <span th:class="'badge badge-priority-' + ${#strings.toLowerCase(ticket.priority)}"
-                      th:text="${ticket.priority}">MEDIUM</span>
+                      th:text="${#strings.capitalize(#strings.toLowerCase(ticket.priority))}">MEDIUM</span>
                 <span th:class="'badge badge-status-' + ${#strings.replace(#strings.toLowerCase(ticket.status),'_','-')}"
-                      th:text="${ticket.status}">NEW</span>
+                      th:text="${#strings.capitalize(#strings.toLowerCase(#strings.replace(ticket.status.name(),'_',' ')))}">NEW</span>
                 <form th:if="${ticket.status.name() == 'NEW' or ticket.status.name() == 'OPEN'}"
                       th:action="@{/student/tickets/{id}/delete(id=${ticket.ticketId})}"
-                      method="post" style="display:inline; margin:0;">
-                    <button type="submit" class="btn btn-sm danger" style="padding: 4px 10px; font-size: 12px;"
+                      method="post" class="inline-form">
+                    <button type="submit" class="btn btn-sm danger"
                             onclick="return confirm('Are you sure you want to delete this ticket? This action cannot be undone.');">
                         Delete Ticket
                     </button>
@@ -71,6 +57,11 @@
         </div>
 
         <!-- Structured Metadata Grid -->
+        <section th:if="${ticket.asset != null}" class="asset-ticket-note">
+            <span class="section-eyebrow">AFFECTED EQUIPMENT</span>
+            <strong th:text="${ticket.asset.assetTag + ' · ' + ticket.asset.assetName}"></strong>
+            <span th:text="${ticket.asset.location + ' · ' + ticket.asset.condition.label}"></span>
+        </section>
         <div class="detail-list">
             <div>
                 <div class="detail-item-label">Category</div>
@@ -86,14 +77,14 @@
             <div>
                 <div class="detail-item-label">Created Date</div>
                 <div class="detail-item-value"
-                     th:text="${#temporals.format(ticket.createdDate, 'yyyy-MM-dd HH:mm:ss')}">
+                     th:text="${#temporals.format(ticket.createdDate, 'dd MMM yyyy, HH:mm')}">
                     2026-09-15 08:30:00
                 </div>
             </div>
             <div>
                 <div class="detail-item-label">Last Updated</div>
                 <div class="detail-item-value"
-                     th:text="${#temporals.format(ticket.updatedDate, 'yyyy-MM-dd HH:mm:ss')}">
+                     th:text="${#temporals.format(ticket.updatedDate, 'dd MMM yyyy, HH:mm')}">
                     2026-09-15 08:30:00
                 </div>
             </div>
@@ -119,8 +110,8 @@
 
         <!-- Description -->
         <div>
-            <div class="detail-item-label" style="margin-bottom: 8px;">Description</div>
-            <div style="background: #f8fafc; padding: 18px; border-radius: var(--radius-md); border: 1px solid var(--border); white-space: pre-wrap; font-size: 0.95rem; line-height: 1.6;"
+            <div class="detail-item-label mb-2">Description</div>
+            <div class="content-panel preserve-lines"
                  th:text="${ticket.description}">
                 Full issue description
             </div>
@@ -140,10 +131,10 @@
                     <div class="timeline-content">
                         <div class="timeline-header">
                             <span class="timeline-title">
-                                <span th:if="${item.oldStatus != null}" th:text="${item.oldStatus + ' → '}"></span>
-                                <span th:text="${item.newStatus}" style="color: var(--primary);">NEW</span>
+                                <span th:if="${item.oldStatus != null}" th:text="${#strings.capitalize(#strings.toLowerCase(#strings.replace(item.oldStatus.name(),'_',' '))) + ' → '}"></span>
+                                <span th:text="${#strings.capitalize(#strings.toLowerCase(#strings.replace(item.newStatus.name(),'_',' ')))}" style="color: var(--primary);">NEW</span>
                             </span>
-                            <span th:text="${#temporals.format(item.changedDate, 'yyyy-MM-dd HH:mm')}">2026-09-15 08:30</span>
+                            <span th:text="${#temporals.format(item.changedDate, 'dd MMM yyyy, HH:mm')}">2026-09-15 08:30</span>
                         </div>
                         <div style="font-size: 0.85rem; color: #475569;" th:text="${item.reason}">Ticket submitted by student.</div>
                         <div th:if="${item.changedByUser != null}" style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">
@@ -166,7 +157,7 @@
                 <div th:each="item : ${attachments}" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
                     <a th:href="@{/student/tickets/{tid}/attachments/{aid}(tid=${ticket.ticketId},aid=${item.attachmentId})}"
                        class="attachment-pill" style="flex-grow: 1; margin: 0;">
-                        <span>📄</span>
+                        <span>&#8595;</span>
                         <span th:text="${item.fileName}" style="font-weight: 600;">document.pdf</span>
                         <span class="file-size-tag" th:text="${(item.fileSize / 1024) + ' KB'}">120 KB</span>
                         <span style="color: var(--primary); font-size: 0.8rem; font-weight: 700;">Download ↓</span>
@@ -181,7 +172,7 @@
                 </div>
             </div>
             <div th:if="${#lists.isEmpty(attachments)}" class="empty-state" style="padding: 24px;">
-                <div style="font-size: 1.8rem; margin-bottom: 6px;">📎</div>
+                <div style="font-size: 1.8rem; margin-bottom: 6px;">&#8593;</div>
                 <p>No attachments uploaded with this ticket.</p>
             </div>
         </div>
@@ -197,7 +188,7 @@
             <div class="comment-item" th:each="item : ${comments}">
                 <div class="comment-header">
                     <span class="comment-author" th:text="${item.user.firstName + ' ' + item.user.lastName}">Support Staff</span>
-                    <span class="comment-time" th:text="${#temporals.format(item.createdDate, 'yyyy-MM-dd HH:mm')}">2026-09-15 09:00</span>
+                    <span class="comment-time" th:text="${#temporals.format(item.createdDate, 'dd MMM yyyy, HH:mm')}">2026-09-15 09:00</span>
                 </div>
                 <p class="comment-text" th:text="${item.commentText}">Comment text goes here.</p>
             </div>
@@ -211,7 +202,7 @@
         <form th:action="@{/student/tickets/{id}/comments(id=${ticket.ticketId})}" method="post" style="border-top: 1px solid var(--border-subtle); padding-top: 20px;">
             <div class="form-group">
                 <label for="comment-text">Post a Public Reply</label>
-                <textarea id="comment-text" name="comment" rows="4" required
+                <textarea id="comment-text" name="comment" maxlength="20000" rows="4" required
                           placeholder="Type your message or response to support staff here..."></textarea>
             </div>
             <button type="submit" class="btn" id="btn-post-comment">Post Reply</button>
@@ -232,7 +223,7 @@
                     <span style="font-weight: 700; color: #166534;" th:text="${feedback.rating + ' / 5'}">5 / 5</span>
                 </div>
                 <p th:if="${feedback.comment != null}" th:text="${feedback.comment}" style="color: #1e293b; margin: 8px 0;"></p>
-                <div style="font-size: 0.8rem; color: #15803d;" th:text="${'Submitted on ' + #temporals.format(feedback.submittedDate, 'yyyy-MM-dd HH:mm')}">Submitted date</div>
+                <div style="font-size: 0.8rem; color: #15803d;" th:text="${'Submitted on ' + #temporals.format(feedback.submittedDate, 'dd MMM yyyy, HH:mm')}">Submitted date</div>
             </div>
         </div>
 

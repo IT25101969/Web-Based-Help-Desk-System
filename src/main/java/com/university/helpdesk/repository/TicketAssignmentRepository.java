@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.Optional;
 
 public interface TicketAssignmentRepository extends JpaRepository<TicketAssignment, Long> {
+    boolean existsByTicketCategoryCategoryIdAndStatus(Long categoryId, com.university.helpdesk.entity.AssignmentStatus status);
+    boolean existsByAssignedToUserUserIdAndTicketCategoryDepartmentDepartmentIdAndStatus(Long userId, Long departmentId, com.university.helpdesk.entity.AssignmentStatus status);
     Optional<TicketAssignment> findFirstByTicketTicketIdAndStatusOrderByAssignedDateDesc(Long ticketId, AssignmentStatus status);
     List<TicketAssignment> findByTicketTicketIdOrderByAssignedDateDesc(Long ticketId);
     List<TicketAssignment> findByTicketTicketIdAndStatus(Long ticketId, AssignmentStatus status);

@@ -1,168 +1,40 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>User Administration</title>
-    <link rel="stylesheet" th:href="@{/css/app.css}">
-</head>
-<body>
-<header class="topbar">
-    <a th:href="@{/admin/dashboard}" class="topbar-brand">
-        <strong>University</strong> <span>Help Desk</span>
-    </a>
-    <nav class="topbar-nav">
-        <a th:href="@{/admin/dashboard}">Dashboard</a>
-        <a th:href="@{/admin/tickets}">Tickets</a>
-        <a th:href="@{/admin/reports}">Reports</a>
-        <a th:href="@{/admin/users}" class="active">Users</a>
-        <a th:href="@{/admin/faqs}">FAQ Admin</a>
-        <a th:href="@{/admin/monitoring}">Monitoring</a>
-        <a th:href="@{/admin/activity-logs}">Logs</a>
-        <a th:href="@{/notifications}">Notifications</a>
-    </nav>
-    <div class="topbar-user">
-        <span class="user-badge">Admin</span>
-        <form th:action="@{/logout}" method="post" style="display: inline; margin: 0;">
-            <button type="submit" class="btn-logout">Logout</button>
-        </form>
-    </div>
-</header>
-
-<div class="container">
-    <div th:if="${success}" class="alert success" th:text="${success}"></div>
-    <div th:if="${error}" class="alert error" th:text="${error}"></div>
-
-    <div class="card">
-        <h1>Create User</h1>
-        <form th:action="@{/admin/users}" method="post">
-            <div class="grid grid-2">
-                <label>University ID
-                    <input name="universityId" required placeholder="e.g. STU999 or ADM999">
-                </label>
-                <label>Email
-                    <input name="email" type="email" required placeholder="user@university.edu">
-                </label>
-                <label>First name
-                    <input name="firstName" required>
-                </label>
-                <label>Last name
-                    <input name="lastName" required>
-                </label>
-                <label>Initial password
-                    <input name="password" type="password" minlength="8" required placeholder="Minimum 8 characters">
-                </label>
-                <label>Role
-                    <select name="roleId" required>
-                        <option th:each="r : ${roles}" th:value="${r.roleId}" th:text="${r.roleName}"></option>
-                    </select>
-                </label>
-            </div>
-            <div style="margin-top: 14px;">
-                <button class="btn" type="submit">Create Account</button>
-            </div>
-        </form>
-    </div>
-
-    <div class="card">
-        <h1>Accounts</h1>
-        <table>
-            <thead>
-                <tr>
-                    <th>User</th>
-                    <th>Roles</th>
-                    <th>Status</th>
-                    <th>Failed Attempts</th>
-                    <th>Locked Until</th>
-                    <th>Last Login</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr th:each="user : ${users}"
-                    th:style="${user.accountStatus.name() == 'LOCKED' or user.failedLoginAttempts >= 3} ? 'background: #fff1f2;' : ''">
-                    <td>
-                        <strong th:text="${user.universityId}"></strong>
-                        <div th:if="${user.accountStatus.name() == 'LOCKED'}"
-                             style="display: inline-block; background: #ef4444; color: #fff; font-size: 11px; padding: 2px 6px; border-radius: 4px; font-weight: 700; margin-left: 4px;">
-                            SUSPICIOUS: LOCKED
-                        </div>
-                        <div th:if="${user.accountStatus.name() != 'LOCKED' and user.failedLoginAttempts >= 3}"
-                             style="display: inline-block; background: #f59e0b; color: #fff; font-size: 11px; padding: 2px 6px; border-radius: 4px; font-weight: 700; margin-left: 4px;">
-                            SUSPICIOUS: 3+ FAILED LOGINS
-                        </div>
-                        <br>
-                        <span class="muted" th:text="${user.email}"></span><br>
-                        <span th:text="${user.firstName + ' ' + user.lastName}"></span>
-                    </td>
-                    <td>
-                        <div th:each="ur : ${userRolesMap[user.userId]}" style="margin-bottom: 4px; display: flex; align-items: center; gap: 4px;">
-                            <span class="badge" th:text="${ur.role.roleName}"></span>
-                            <form th:action="@{/admin/users/{userId}/roles/{roleId}/remove(userId=${user.userId},roleId=${ur.role.roleId})}"
-                                  method="post" style="display:inline; margin: 0;">
-                                <button type="submit" class="btn danger"
-                                        style="padding: 1px 6px; font-size: 11px; border-radius: 4px;"
-                                        title="Remove role"
-                                        onclick="return confirm('Are you sure you want to remove this role?');">
-                                    &times;
-                                </button>
-                            </form>
-                        </div>
-                        <div th:if="${#lists.isEmpty(userRolesMap[user.userId])}" class="muted">None</div>
-                    </td>
-                    <td>
-                        <span th:text="${user.accountStatus}"
-                              th:style="${user.accountStatus.name() == 'ACTIVE'} ? 'color: #10b981; font-weight: 700;' : (${user.accountStatus.name() == 'LOCKED'} ? 'color: #ef4444; font-weight: 700;' : 'color: #6b7280;')">
-                        </span>
-                    </td>
-                    <td th:text="${user.failedLoginAttempts}"
-                        th:style="${user.failedLoginAttempts >= 3} ? 'color: #ef4444; font-weight: 700;' : ''">
-                    </td>
-                    <td th:text="${user.lockedUntil != null ? #temporals.format(user.lockedUntil,'yyyy-MM-dd HH:mm') : 'None'}"></td>
-                    <td th:text="${user.lastLoginAt != null ? #temporals.format(user.lastLoginAt,'yyyy-MM-dd HH:mm') : 'Never'}"></td>
-                    <td>
-                        <!-- Status Update Form -->
-                        <form th:action="@{/admin/users/{id}/status(id=${user.userId})}" method="post" style="margin-bottom: 6px;">
-                            <div style="display: flex; gap: 4px;">
-                                <select name="status" style="width: auto; padding: 4px 8px; margin: 0;">
-                                    <option th:each="s : ${statuses}" th:value="${s}" th:text="${s}"
-                                            th:selected="${s == user.accountStatus}">
-                                    </option>
-                                </select>
-                                <button class="btn secondary" type="submit" style="padding: 4px 8px; font-size: 12px;">Save</button>
-                            </div>
-                        </form>
-
-                        <!-- Unlock Form (if locked) -->
-                        <form th:if="${user.accountStatus.name() == 'LOCKED'}"
-                              th:action="@{/admin/users/{id}/unlock(id=${user.userId})}" method="post" style="margin-bottom: 6px;">
-                            <button class="btn" type="submit" style="background: #10b981; padding: 4px 8px; font-size: 12px; width: 100%;">
-                                Unlock Account
-                            </button>
-                        </form>
-
-                        <!-- Add Role Form -->
-                        <form th:action="@{/admin/users/{id}/role(id=${user.userId})}" method="post">
-                            <div style="display: flex; gap: 4px;">
-                                <select name="roleId" style="width: auto; padding: 4px 8px; margin: 0;">
-                                    <option th:each="r : ${roles}" th:value="${r.roleId}" th:text="${r.roleName}"></option>
-                                </select>
-                                <button class="btn" type="submit" style="padding: 4px 8px; font-size: 12px;">Add Role</button>
-                            </div>
-                        </form>
-
-                        <!-- Delete User Form -->
-                        <form th:action="@{/admin/users/{id}/delete(id=${user.userId})}" method="post" style="margin-top: 6px;">
-                            <button class="btn danger" type="submit" style="padding: 4px 8px; font-size: 12px; width: 100%;"
-                                    onclick="return confirm('Are you sure you want to deactivate and delete this user?');">
-                                Delete / Deactivate
-                            </button>
-                        </form>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-</div>
-</body>
-</html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>User Management · SLIIT UNI Help Desk</title>
+<link rel="stylesheet" th:href="@{/css/app.css}"><link rel="stylesheet" th:href="@{/css/admin-users.css}"><script defer th:src="@{/js/admin-users.js}"></script></head>
+<body class="app-page"><header th:replace="~{fragments/topbar :: topbar('users')}"></header>
+<main class="container user-management" id="main-content">
+<div class="users-heading"><div><p class="users-eyebrow">ADMINISTRATION / PEOPLE</p><h1>User management</h1><p class="muted">The right people. The right access. Manage your campus community in one place.</p></div><a href="#create-account" class="btn">+ Create account</a></div>
+<div th:if="${success}" class="alert success" role="status" th:text="${success}"></div><div th:if="${error}" class="alert error" role="alert" th:text="${error}"></div>
+<section class="users-metrics" aria-label="Account overview">
+<div><span>Total accounts</span><strong th:text="${totalUsers}">0</strong><small>Campus directory</small></div>
+<div><span><i class="status-dot active"></i> Active</span><strong th:text="${activeUsers}">0</strong><small>Accounts enabled</small></div>
+<div><span><i class="status-dot locked"></i> Locked</span><strong th:text="${lockedUsers}">0</strong><small>Review account access</small></div>
+<div><span><i class="status-dot disabled"></i> Disabled</span><strong th:text="${disabledUsers}">0</strong><small>Sign-in restricted</small></div></section>
+<section class="card users-panel" id="create-account" aria-labelledby="create-title">
+<div class="users-section-heading"><div class="users-section-icon" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="9" cy="8" r="3.5"/><path d="M2 21v-3a7 7 0 0 1 14 0v3M19 7v8M15 11h8"/></svg></div><div><h2 id="create-title">Create a new account</h2><p class="muted">Add a community member and choose their initial role.</p></div><span class="users-required">All fields required</span></div>
+<form th:action="@{/admin/users}" method="post"><div class="users-form-grid">
+<div class="users-field"><label for="create-id">University ID</label><input type="text" id="create-id" name="universityId" maxlength="50" required placeholder="e.g. STU999" th:value="${createValues['universityId']}" autocomplete="off" pattern=".*\S.*" title="Enter a value containing more than spaces."><small>Unique ID used to sign in.</small></div>
+<div class="users-field"><label for="create-first">First name</label><input type="text" id="create-first" name="firstName" maxlength="100" required placeholder="First name" th:value="${createValues['firstName']}" autocomplete="off" pattern=".*\S.*" title="Enter a value containing more than spaces."></div>
+<div class="users-field"><label for="create-last">Last name</label><input type="text" id="create-last" name="lastName" maxlength="100" required placeholder="Last name" th:value="${createValues['lastName']}" autocomplete="off" pattern=".*\S.*" title="Enter a value containing more than spaces."></div>
+<div class="users-field"><label for="create-email">Email address</label><input id="create-email" name="email" type="email" maxlength="150" required placeholder="name@university.edu" th:value="${createValues['email']}" autocomplete="off"><small>For notifications and account recovery.</small></div>
+<div class="users-field"><label for="create-password">Initial password</label><div class="users-password"><input id="create-password" name="password" type="password" minlength="8" maxlength="72" required placeholder="At least 8 characters" autocomplete="new-password" aria-describedby="password-hint"><button type="button" data-password-toggle="create-password" aria-controls="create-password" aria-pressed="false" hidden>Show</button></div><small id="password-hint">8 or more characters, up to 72 UTF-8 bytes.</small></div>
+<div class="users-field"><label for="create-role">Account role</label><select id="create-role" name="roleId" required><option value="">Choose a role</option><option th:each="r : ${roles}" th:value="${r.roleId}" th:text="${r.roleName}" th:selected="${r.roleId == createValues['roleId']}"></option></select><small>Determines access and workspace.</small></div></div>
+<div class="users-form-footer"><p>New accounts are active immediately. Share the initial password securely.</p><button class="btn" type="submit">Create account <span aria-hidden="true">→</span></button></div></form></section>
+<section class="card users-panel users-directory" aria-labelledby="directory-title">
+<div class="users-section-heading"><div><h2 id="directory-title">Account directory <span class="users-count" th:text="${totalUsers}">0</span></h2><p class="muted">Find people, review access, and keep account details up to date.</p></div></div>
+<form method="get" th:action="@{/admin/users}" class="users-filters">
+<div class="users-field"><label for="user-search">Search accounts</label><input type="search" id="user-search" name="q" maxlength="200" th:value="${q}" placeholder="Search name, university ID or email"></div>
+<div class="users-field"><label for="status-filter">Status</label><select name="status" id="status-filter"><option value="">All statuses</option><option th:each="s : ${statuses}" th:value="${s}" th:text="${#strings.capitalize(#strings.toLowerCase(s.name()))}" th:selected="${s.name() == selectedStatus}"></option></select></div>
+<div class="users-field"><label for="role-filter">Role</label><select name="roleId" id="role-filter"><option value="">All roles</option><option th:each="r : ${roles}" th:value="${r.roleId}" th:text="${r.roleName}" th:selected="${r.roleId == selectedRoleId}"></option></select></div><button class="btn secondary" type="submit">Apply filters</button><a th:href="@{/admin/users}" class="users-reset">Reset</a></form>
+<div th:if="${#lists.isEmpty(users)}" class="users-empty"><h3>No accounts found</h3><p class="muted">Try another name or adjust your filters.</p><a th:href="@{/admin/users}" class="btn secondary">Clear filters</a></div>
+<div th:unless="${#lists.isEmpty(users)}" class="table-responsive users-table" tabindex="0" role="region" aria-label="Account directory">
+<table><thead><tr><th scope="col">Account</th><th scope="col">Roles</th><th scope="col">Status</th><th scope="col">Last activity</th><th scope="col"><span class="users-sr-only">Actions</span></th></tr></thead><tbody>
+<tr th:each="user : ${users}">
+<td><div class="users-identity"><span class="users-avatar" aria-hidden="true" th:text="${#strings.toUpperCase(#strings.substring(user.firstName,0,1) + #strings.substring(user.lastName,0,1))}">AB</span><div><strong th:text="${user.firstName + ' ' + user.lastName}"></strong><span class="users-id" th:text="${user.universityId}"></span><span class="users-email" th:text="${user.email}"></span></div></div></td>
+<td><div class="users-role-list"><span class="users-role" th:each="ur : ${userRolesMap[user.userId]}" th:text="${ur.role.roleName}"></span><span th:if="${#lists.isEmpty(userRolesMap[user.userId])}" class="muted">No active roles</span></div></td>
+<td><span class="users-status" th:classappend="${#strings.toLowerCase(user.accountStatus.name())}" th:text="${#strings.capitalize(#strings.toLowerCase(user.accountStatus.name()))}"></span></td>
+<td><span class="users-last-login" th:text="${user.lastLoginAt != null ? #temporals.format(user.lastLoginAt,'dd MMM yyyy, HH:mm') : 'Not signed in yet'}"></span><small class="users-login-alert" th:if="${user.failedLoginAttempts >= 3}" th:text="${user.failedLoginAttempts + ' failed sign-in attempts'}"></small></td>
+<td><a class="btn secondary users-manage" th:href="@{/admin/users/{id}/edit(id=${user.userId})}" th:attr="aria-label=${'Manage account for ' + user.universityId}">Manage <span aria-hidden="true">↗</span></a></td></tr></tbody></table></div>
+<div class="users-directory-footer"><p class="muted" role="status"><strong th:text="${resultCount}">0</strong> matching accounts<span th:if="${resultCount > 0}" th:text="${' · Showing ' + (page * 10 + 1) + '–' + (page * 10 + #lists.size(users))}"></span></p><nav aria-label="Account pages"><a th:if="${page > 0}" class="btn secondary" th:href="@{/admin/users(q=${q},status=${selectedStatus},roleId=${selectedRoleId},page=${page - 1})}">← Previous</a><span th:text="${'Page ' + (page + 1) + ' of ' + pageCount}"></span><a th:if="${page + 1 < pageCount}" class="btn secondary" th:href="@{/admin/users(q=${q},status=${selectedStatus},roleId=${selectedRoleId},page=${page + 1})}">Next →</a></nav></div></section>
+</main></body></html>

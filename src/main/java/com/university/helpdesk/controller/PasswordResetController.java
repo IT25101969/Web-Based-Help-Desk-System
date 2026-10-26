@@ -84,11 +84,10 @@ public class PasswordResetController {
             Model model
     ) {
 
-        if (password.length() < 8) {
-            model.addAttribute(
-                    "error",
-                    "Password must contain at least 8 characters."
-            );
+        try {
+            com.university.helpdesk.security.PasswordPolicy.validate(password);
+        } catch (IllegalArgumentException ex) {
+            model.addAttribute("error", ex.getMessage());
             model.addAttribute("token", token);
             return "reset-password";
         }

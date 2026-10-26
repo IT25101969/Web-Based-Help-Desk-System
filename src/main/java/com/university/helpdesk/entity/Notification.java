@@ -36,6 +36,12 @@ public class Notification {
     @Column(name = "Read_Date")
     private LocalDateTime readDate;
 
+    @Column(name = "Action_Url", length = 200)
+    private String actionUrl;
+
+    public String getActionUrl() { return actionUrl; }
+    public void setActionUrl(String actionUrl) { this.actionUrl = actionUrl; }
+
     @PrePersist
     void onCreate() {
         if (createdDate == null) createdDate = LocalDateTime.now();

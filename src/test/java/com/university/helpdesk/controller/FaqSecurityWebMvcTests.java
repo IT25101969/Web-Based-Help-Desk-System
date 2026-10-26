@@ -138,7 +138,7 @@ class FaqSecurityWebMvcTests extends com.university.helpdesk.TestAccounts {
 
     @Test
     @DisplayName("34. User FAQ view contains category prefill link in ticket CTA when category is active")
-    @WithMockUser(username = "STU001", authorities = {"ROLE_Student"})
+    @WithMockUser(username = "STU001", authorities = {"ROLE_Student", "SUBMIT_TICKET"})
     void testFaqViewCategoryPrefillCta() throws Exception {
         Faq faq = new Faq();
         faq.setQuestion("How to check card balance " + uniqueSuffix);

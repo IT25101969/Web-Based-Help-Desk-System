@@ -19,7 +19,7 @@ public class DefaultEmailSenderService implements EmailSenderService {
 
     public DefaultEmailSenderService(
             @Value("${app.mail.enabled:false}") boolean mailEnabled,
-            @Value("${app.mail.from:helpdesk@university.edu}") String fromAddress,
+            @Value("${app.mail.from:}") String fromAddress,
             @Autowired(required = false) JavaMailSender mailSender
     ) {
         this.mailEnabled = mailEnabled;
@@ -30,7 +30,7 @@ public class DefaultEmailSenderService implements EmailSenderService {
     @Override
     public void sendEmail(String to, String subject, String body) throws Exception {
         if (!mailEnabled) {
-            log.info("Email delivery skipped for {} (app.mail.enabled=false)", to);
+            log.debug("Email delivery disabled.");
             throw new IllegalStateException("Email delivery is disabled (app.mail.enabled=false).");
         }
 
@@ -39,6 +39,9 @@ public class DefaultEmailSenderService implements EmailSenderService {
             throw new IllegalStateException("JavaMailSender is not configured.");
         }
 
+        if (fromAddress == null || fromAddress.isBlank()) {
+            throw new IllegalStateException("MAIL_FROM or MAIL_USERNAME must be configured.");
+        }
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(fromAddress);
         message.setTo(to);
@@ -46,7 +49,7 @@ public class DefaultEmailSenderService implements EmailSenderService {
         message.setText(body);
 
         mailSender.send(message);
-        log.info("Email successfully sent to {} with subject '{}'", to, subject);
+        log.debug("Email accepted by SMTP server.");
     }
 
     @Override

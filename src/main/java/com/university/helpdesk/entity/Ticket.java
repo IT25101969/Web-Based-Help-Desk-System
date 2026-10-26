@@ -23,6 +23,10 @@ public class Ticket {
     @JoinColumn(name = "Category_ID", nullable = false)
     private Category category;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "Asset_ID")
+    private ItAsset asset;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "Ticket_Type", nullable = false, length = 30)
     private TicketType ticketType;
@@ -31,7 +35,7 @@ public class Ticket {
     private String subject;
 
     @Lob
-    @Column(name = "Description", nullable = false)
+    @Column(name = "Description", nullable = false, columnDefinition = "MEDIUMTEXT")
     private String description;
 
     @Enumerated(EnumType.STRING)
@@ -76,6 +80,8 @@ public class Ticket {
     public void setStudent(Student student) { this.student = student; }
     public Category getCategory() { return category; }
     public void setCategory(Category category) { this.category = category; }
+    public ItAsset getAsset() { return asset; }
+    public void setAsset(ItAsset asset) { this.asset = asset; }
     public TicketType getTicketType() { return ticketType; }
     public void setTicketType(TicketType ticketType) { this.ticketType = ticketType; }
     public String getSubject() { return subject; }

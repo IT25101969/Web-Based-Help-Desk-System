@@ -5,29 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Submit Ticket - University Help Desk</title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/css/workspace-polish.css}">
 </head>
-<body>
+<body class="app-page refined-page ticket-submit-page">
 
-<header class="topbar">
-    <a th:href="@{/student/dashboard}" class="topbar-brand">
-        <strong>University</strong> <span>Help Desk</span>
-    </a>
-    <nav class="topbar-nav">
-        <a th:href="@{/student/dashboard}">Dashboard</a>
-        <a th:href="@{/student/tickets}">My Tickets</a>
-        <a th:href="@{/student/tickets/new}" class="active">Submit Ticket</a>
-        <a th:href="@{/faq}">FAQ</a>
-        <a th:href="@{/notifications}">Notifications</a>
-    </nav>
-    <div class="topbar-user">
-        <form th:action="@{/logout}" method="post" style="display:inline; margin:0;">
-            <button type="submit" class="btn-logout">Logout</button>
-        </form>
-    </div>
-</header>
+<header th:replace="~{fragments/topbar :: topbar('submit')}"></header>
 
 <main class="container">
-    <div class="page-header">
+    <div class="page-header page-hero">
         <div>
             <h1 class="page-title">Submit a Ticket</h1>
             <p class="page-subtitle">Report a campus incident or request university IT/administrative services.</p>
@@ -39,12 +24,13 @@
 
     <!-- Alert Messages -->
     <div th:if="${error}" class="alert error" id="alert-error">
-        <span>⚠️</span>
+        <span>&#9888;</span>
         <span th:text="${error}">An error occurred.</span>
     </div>
 
     <div class="card">
         <form th:action="@{/student/tickets}" th:object="${form}" method="post" enctype="multipart/form-data" id="ticket-form">
+            <aside class="draft-panel" id="draft-panel" th:attr="data-endpoint=@{/student/draft}"><div><strong>Your work, saved as you go.</strong><p id="draft-status" role="status">Checking for a saved draft…</p><small>Draft text is saved to your account. Attachments are not saved; choose them again when you return.</small></div><div class="draft-actions" id="draft-actions" hidden><button type="button" id="restore-draft" class="btn secondary btn-sm">Restore saved draft</button><button type="button" id="discard-draft" class="btn secondary btn-sm">Start a new draft</button></div></aside>
 
             <!-- Category Field -->
             <div class="form-group">
@@ -65,6 +51,17 @@
 
             <!-- Ticket Type Field -->
             <div class="form-group">
+                <label for="assetId">Affected equipment (Optional)</label>
+                <select id="assetId" th:field="*{assetId}">
+                    <option value="">No equipment / Not sure</option>
+                    <option th:each="asset : ${selectableAssets}" th:value="${asset.id}"
+                            th:text="${asset.tag + ' · ' + asset.name + ' — ' + asset.location}"></option>
+                </select>
+                <p class="form-hint">Choose shared campus equipment or equipment assigned to you. Your category determines which support team receives the ticket.</p>
+                <div th:if="${#fields.hasErrors('assetId')}" class="field-error" th:errors="*{assetId}"></div>
+            </div>
+
+            <div class="form-group">
                 <label for="ticketType">
                     Ticket Type <span class="required">*</span>
                 </label>
@@ -79,8 +76,8 @@
             </div>
 
             <!-- Incident-specific details -->
-            <div id="incident-fields" class="form-group" style="padding: 16px; background: #f8fafc; border-radius: var(--radius-md); border: 1px solid var(--border);">
-                <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 12px; color: #4338ca;">Incident Details</div>
+            <div id="incident-fields" class="form-group form-section">
+                <div class="form-section-title">Incident details</div>
                 <div class="grid grid-2">
                     <div>
                         <label for="subtypeDetail-incident">Incident Type / Specific Issue</label>
@@ -104,10 +101,10 @@
             </div>
 
             <!-- Service Request-specific details -->
-            <div id="service-request-fields" class="form-group" style="display:none; padding: 16px; background: #f8fafc; border-radius: var(--radius-md); border: 1px solid var(--border);">
-                <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 12px; color: #0284c7;">Service Request Details</div>
+            <div id="service-request-fields" class="form-group form-section" style="display:none;">
+                <div class="form-section-title">Service request details</div>
                 <label for="subtypeDetail-service">Requested Service Description</label>
-                <input type="text" id="subtypeDetail-service" maxlength="150"
+                <input type="text" id="subtypeDetail-service" maxlength="150" th:value="*{subtypeDetail}"
                        placeholder="e.g. SPSS statistical software license, transcript verification">
                 <div class="form-hint">Specify the software, hardware, credential or service you are requesting.</div>
             </div>
@@ -119,16 +116,23 @@
                 </label>
                 <input type="text" id="subject" th:field="*{subject}" maxlength="200"
                        th:classappend="${#fields.hasErrors('subject')} ? 'is-invalid' : ''"
-                       placeholder="Brief summary of your inquiry or problem" required>
+                       placeholder="Brief summary of your inquiry or problem" required pattern=".*\S.*" title="Enter a value containing more than spaces.">
                 <div th:if="${#fields.hasErrors('subject')}" class="field-error" th:errors="*{subject}"></div>
             </div>
 
             <!-- Description Field -->
+            <aside id="faq-suggestions" class="suggestion-panel" th:attr="data-endpoint=@{/faq/suggestions},data-faq-url=@{/faq}" aria-labelledby="suggestion-title">
+                <div class="section-eyebrow">A QUICK ANSWER MAY HELP</div>
+                <h3 id="suggestion-title">Suggested guides</h3>
+                <p class="muted" id="suggestion-status" role="status">Choose a category or enter a subject to find relevant university guides.</p>
+                <div id="suggestion-results"></div>
+                <a th:href="@{/faq}" target="_blank" rel="noopener">Explore the knowledge base ↗</a>
+            </aside>
             <div class="form-group">
                 <label for="description">
                     Detailed Description <span class="required">*</span>
                 </label>
-                <textarea id="description" th:field="*{description}" rows="6"
+                <textarea id="description" th:field="*{description}" rows="6" maxlength="20000"
                           th:classappend="${#fields.hasErrors('description')} ? 'is-invalid' : ''"
                           placeholder="Please describe the issue or request in detail. Include any steps to reproduce the error or specific requirements." required></textarea>
                 <div th:if="${#fields.hasErrors('description')}" class="field-error" th:errors="*{description}"></div>
@@ -139,8 +143,8 @@
                 <label for="attachment">
                     Attachment (Optional)
                 </label>
-                <div class="file-upload-box" onclick="document.getElementById('attachment').click();">
-                    <div style="font-size: 1.8rem; margin-bottom: 6px;">📎</div>
+                <div class="file-upload-box" role="button" tabindex="0" aria-label="Choose ticket attachment" onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); document.getElementById('attachment').click(); }" onclick="document.getElementById('attachment').click();">
+                    <div style="font-size: 1.8rem; margin-bottom: 6px;">&#8593;</div>
                     <div style="font-weight: 600; color: #334155;" id="file-chosen-text">Choose a file or click here to browse</div>
                     <div class="form-hint" style="margin-top: 6px;">Allowed types: <strong>PDF, PNG, JPG/JPEG, TXT</strong> · Maximum size: <strong>5 MB</strong></div>
                 </div>
@@ -215,11 +219,13 @@
         }
 
         const sizeFormatted = (file.size / 1024).toFixed(1) + ' KB';
-        chosenText.innerHTML = '<strong>' + file.name + '</strong> (' + sizeFormatted + ')';
+        chosenText.textContent = file.name + ' (' + sizeFormatted + ')';
     }
 
     document.addEventListener('DOMContentLoaded', onTypeChange);
 </script>
+<script th:src="@{/js/faq-suggestions.js}" defer></script>
+<script th:src="@{/js/ticket-draft.js}" defer></script>
 
 </body>
 </html>

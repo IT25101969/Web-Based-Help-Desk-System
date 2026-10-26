@@ -391,6 +391,9 @@ public class ReportAndAdminServiceTests {
         MockHttpServletRequest request = new MockHttpServletRequest();
         RedirectAttributesModelMap redirect = new RedirectAttributesModelMap();
 
+        // Unlocking requires an assigned role, as for a usable application account.
+        Role studentRole = roleRepository.findByRoleName("Student").orElseThrow();
+        adminUserController.addRole(testStudent.getUserId(), studentRole.getRoleId(), auth, request, redirect);
         // Disable user
         adminUserController.status(testStudent.getUserId(), AccountStatus.DISABLED, auth, request, redirect);
         UserAccount disabledUser = userAccountRepository.findById(testStudent.getUserId()).orElseThrow();
@@ -458,6 +461,8 @@ public class ReportAndAdminServiceTests {
 
         Role staffRole = roleRepository.findByRoleName("Help Desk Support Staff").orElseThrow();
 
+        // Disable before removing the last role; it can still be assigned again later.
+        adminUserController.status(testStaff.getUserId(), AccountStatus.DISABLED, auth, request, redirect);
         // Remove staff role
         adminUserController.removeRole(testStaff.getUserId(), staffRole.getRoleId(), auth, request, redirect);
         UserRole ur = userRoleRepository.findByUserUserIdAndRoleRoleId(testStaff.getUserId(), staffRole.getRoleId()).orElseThrow();

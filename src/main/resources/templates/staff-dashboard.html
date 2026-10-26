@@ -5,50 +5,41 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Support Staff Dashboard - University Help Desk</title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/css/workspace-polish.css}">
 </head>
-<body>
+<body class="dashboard-page app-page refined-page refined-dashboard">
 
-<header class="topbar">
-    <a th:href="@{/staff/dashboard}" class="topbar-brand">
-        <strong>University</strong> <span>Help Desk</span>
-    </a>
-    <nav class="topbar-nav">
-        <a th:href="@{/staff/dashboard}" class="active">Dashboard</a>
-        <a th:href="@{/staff/tickets}">Ticket Queue</a>
-        <a th:href="@{/faq}">FAQ</a>
-        <a th:href="@{/notifications}">Notifications</a>
-    </nav>
-    <div class="topbar-user">
-        <span class="user-badge">Support</span>
-        <form th:action="@{/logout}" method="post" style="display:inline; margin:0;">
-            <button type="submit" class="btn-logout">Logout</button>
-        </form>
-    </div>
-</header>
+<header th:replace="~{fragments/topbar :: topbar('dashboard')}"></header>
 
 <main class="container">
-    <div class="page-header">
+    <div class="page-header page-hero">
         <div>
+            <span class="page-eyebrow">YOUR CAMPUS WORKSPACE</span>
             <h1 class="page-title">Support Staff Dashboard</h1>
-            <p class="page-subtitle">Process assigned tickets, resolve student inquiries, and post internal notes.</p>
+            <p class="page-subtitle">Handle your department's tickets, resolve student inquiries, and post internal notes.</p>
         </div>
         <div>
-            <a th:href="@{/staff/tickets}" class="btn">View Assigned Queue</a>
+            <a th:href="@{/staff/tickets}" class="btn">View Department Queue</a>
         </div>
     </div>
 
-    <div class="grid grid-3" style="margin-bottom: 28px;">
-        <div class="card">
-            <h2 class="card-title">My Ticket Queue</h2>
-            <p class="muted">Access your assigned tickets, update priorities, and record status changes.</p>
+    <div class="grid grid-2">
+        <div class="card feature-card"><span class="feature-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></span>
+            <h2 class="card-title">My Assets</h2>
+            <p class="muted">View equipment assigned to your account, including its location and current condition.</p>
+            <a th:href="@{/my-assets}" class="btn btn-sm secondary">View Assigned Equipment &rarr;</a>
+        </div>
+        <div class="card feature-card"><span class="feature-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3h8l4 4v14H4V3h4ZM8 11h8M8 15h5M16 3v5h4"/></svg></span>
+            <h2 class="card-title">Department Ticket Queue</h2>
+            <p class="muted">View assigned and unassigned department tickets, update priorities, and record status changes.</p>
             <a th:href="@{/staff/tickets}" class="btn btn-sm">Open Queue &rarr;</a>
         </div>
-        <div class="card">
+        <div class="card feature-card"><span class="feature-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4"/></svg></span>
             <h2 class="card-title">Notification Center</h2>
             <p class="muted">Review status transitions, assignment alerts, and system notifications.</p>
             <a th:href="@{/notifications}" class="btn btn-sm secondary">View Notifications &rarr;</a>
         </div>
-        <div class="card">
+        <div class="card feature-card"><span class="feature-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h7l2 2 2-2h7v14h-7l-2 2-2-2H3V5ZM12 7v14"/></svg></span>
             <h2 class="card-title">FAQ &amp; Knowledge Base</h2>
             <p class="muted">Consult reference answers and troubleshooting guides for student support.</p>
             <a th:href="@{/faq}" class="btn btn-sm secondary">Browse FAQs &rarr;</a>

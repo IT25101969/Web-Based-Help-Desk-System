@@ -33,6 +33,8 @@ public class SupportTicketController {
     private final CommentService commentService;
     private final DepartmentRepository departmentRepository;
     private final TicketAssignmentRepository assignmentRepository;
+    private final TicketWorkspaceService workspace;
+    private final com.university.helpdesk.repository.SavedReplyRepository savedReplies;
 
     public SupportTicketController(
             TicketService ticketService,
@@ -42,7 +44,9 @@ public class SupportTicketController {
             AttachmentService attachmentService,
             CommentService commentService,
             DepartmentRepository departmentRepository,
-            TicketAssignmentRepository assignmentRepository
+            TicketAssignmentRepository assignmentRepository,
+            TicketWorkspaceService workspace,
+            com.university.helpdesk.repository.SavedReplyRepository savedReplies
     ) {
         this.ticketService = ticketService;
         this.assignmentService = assignmentService;
@@ -52,6 +56,8 @@ public class SupportTicketController {
         this.commentService = commentService;
         this.departmentRepository = departmentRepository;
         this.assignmentRepository = assignmentRepository;
+        this.workspace = workspace;
+        this.savedReplies = savedReplies;
     }
 
     @GetMapping({"/staff/tickets", "/manager/tickets", "/admin/tickets"})
@@ -61,18 +67,19 @@ public class SupportTicketController {
             @RequestParam(value = "departmentId", required = false) Long departmentId,
             @RequestParam(value = "unmappedOnly", required = false, defaultValue = "false") boolean unmappedOnly,
             @RequestParam(value = "assignmentState", required = false) String assignmentState,
+            @RequestParam(defaultValue = "") String q,
+            @RequestParam(defaultValue = "newest") String sort,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
             Authentication authentication,
             HttpServletRequest request,
             Model model
     ) {
         String basePath = basePath(request);
-        List<Ticket> tickets;
-
-        if ("/admin".equals(basePath)) {
-            tickets = ticketService.getAdminTicketsWithFilters(departmentId, unmappedOnly, status, priority);
-        } else {
-            tickets = ticketService.getSupportTicketsWithFilters(authentication.getName(), status, priority);
-        }
+        var ticketPage = workspace.search(authentication.getName(), "/admin".equals(basePath) ? "admin" : "support",
+                q, status, priority, "/admin".equals(basePath) ? departmentId : null,
+                "/admin".equals(basePath) && unmappedOnly, assignmentState, sort, page, size);
+        List<Ticket> tickets = ticketPage.getContent();
 
         Map<Long, TicketAssignment> assigneeMap = new HashMap<>();
         if (!tickets.isEmpty()) {
@@ -82,12 +89,9 @@ public class SupportTicketController {
             }
         }
 
-        if ("ASSIGNED".equalsIgnoreCase(assignmentState)) {
-            tickets = tickets.stream().filter(t -> assigneeMap.containsKey(t.getTicketId())).toList();
-        } else if ("UNASSIGNED".equalsIgnoreCase(assignmentState)) {
-            tickets = tickets.stream().filter(t -> !assigneeMap.containsKey(t.getTicketId())).toList();
-        }
-
+        model.addAttribute("ticketPage", ticketPage);
+        model.addAttribute("q", TicketWorkspaceService.normalizeQuery(q));
+        model.addAttribute("selectedSort", TicketWorkspaceService.normalizeOrder(sort));
         model.addAttribute("tickets", tickets);
         model.addAttribute("assigneeMap", assigneeMap);
         model.addAttribute("basePath", basePath);
@@ -137,14 +141,20 @@ public class SupportTicketController {
                 assignmentService.getCandidates(ticketId, authentication.getName())
         );
 
-        boolean canAssign = ticket.getCategory() != null
+        boolean canAssign = authentication.getAuthorities().stream()
+                .anyMatch(authority -> "ASSIGN_TICKET".equals(authority.getAuthority()))
+                && ticket.getCategory() != null
                 && ticket.getCategory().getDepartment() != null
                 && ticket.getStatus() != TicketStatus.CLOSED;
         model.addAttribute("canAssign", canAssign);
+        model.addAttribute("canModerateComments", authentication.getAuthorities().stream().anyMatch(authority ->
+                "ROLE_System Administrator".equals(authority.getAuthority())
+                        || "ROLE_Department Manager".equals(authority.getAuthority())));
 
         model.addAttribute("statuses", TicketStatus.values());
         model.addAttribute("priorities", TicketPriority.values());
         model.addAttribute("commentTypes", CommentType.values());
+        model.addAttribute("savedReplies", savedReplies.findByEnabledTrueOrderByTitleAsc());
         model.addAttribute("basePath", basePath(request));
         return "support-ticket-view";
     }
@@ -326,16 +336,19 @@ public class SupportTicketController {
     ) throws IOException {
         Ticket ticket = ticketService.getAuthorizedSupportTicket(ticketId, authentication.getName());
         Attachment attachment = attachmentRepository.findById(attachmentId)
-                .orElseThrow(() -> new IllegalArgumentException("Attachment was not found."));
+                .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Attachment was not found."));
 
         if (!attachment.getTicket().getTicketId().equals(ticket.getTicketId())) {
-            throw new IllegalArgumentException("Attachment does not belong to this ticket.");
+            throw new AccessDeniedException("Attachment does not belong to this ticket.");
         }
 
         Resource resource = attachmentService.load(attachment);
+        MediaType mediaType;
+        try { mediaType = MediaType.parseMediaType(attachment.getFileType()); }
+        catch (Exception ex) { mediaType = MediaType.APPLICATION_OCTET_STREAM; }
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + attachment.getFileName() + "\"")
-                .contentType(MediaType.parseMediaType(attachment.getFileType()))
+                .header(HttpHeaders.CONTENT_DISPOSITION, org.springframework.http.ContentDisposition.attachment().filename(attachment.getFileName(), java.nio.charset.StandardCharsets.UTF_8).build().toString())
+                .contentType(mediaType)
                 .body(resource);
     }
 

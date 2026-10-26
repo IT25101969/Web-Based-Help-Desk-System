@@ -39,6 +39,9 @@ subsequent user accounts through the website.
 
 ## Email and password reset
 
+See [SMTP and Gmail setup](docs/smtp-setup.md) for secure runtime configuration,
+Google App Password instructions, retry behavior, and the final inbox verification.
+
 SMTP is optional. Set `MAIL_ENABLED`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`,
 `MAIL_PASSWORD`, and `MAIL_FROM` through the environment to enable delivery.
 `APP_PUBLIC_URL` must be the externally reachable base URL for password reset links.
@@ -49,6 +52,24 @@ is disabled when `MAIL_ENABLED=false`; queued emails remain pending.
 email is unavailable. Reset token records contain SHA-256 hashes, expire after
 30 minutes, and are invalidated after use or replacement. As with any queued
 email, a reset email body contains its delivery link; restrict database access.
+
+## IT Asset Management
+
+Administrators with `MANAGE_SYSTEM` can open **IT Assets** from the navigation or
+dashboard. Register, search, filter, view, edit and delete equipment records.
+Each asset has a unique tag, optional unique serial number, responsible department,
+location, condition, optional assigned user, purchase date and notes.
+
+Students may optionally select shared equipment or their own assigned equipment
+on the ticket form. Category mappings continue to determine ticket routing.
+Equipment appears on student and staff ticket details; administrators can view its
+linked support history. Retired equipment is excluded from new ticket selections.
+Assets with linked tickets cannot be deleted; retire them to preserve history.
+
+Normal startup adds the `IT_ASSET` table and nullable asset identifiers on tickets
+and drafts through Hibernate `update`. Existing tickets remain valid without an
+asset. Inventory changes are recorded in activity logs. Stale editor submissions
+are rejected to prevent overwriting another administrator's changes.
 
 ## Verification
 
@@ -69,3 +90,11 @@ and an optional ticket ID. It prints schema names, active RBAC mappings, and
 workflow persistence counts without exposing passwords or token contents.
 
 See `docs/integration-verification.md` for the integration results and limitations.
+
+See `docs/verification-2026-10-01.md` for the latest website and database review.
+`scripts/ReviewDatabase.java` checks record integrity and insert/read/update/rollback
+behavior using the same JDBC environment variables and MySQL connector classpath.
+Its optional `--verify-commit` argument also checks committed inserts and updates
+across independent connections using one temporary unpublished announcement, then
+removes that generated row and verifies cleanup. This mode can advance the
+announcement ID sequence; it does not edit existing announcements.

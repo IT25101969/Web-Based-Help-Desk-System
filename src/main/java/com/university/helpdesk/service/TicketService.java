@@ -35,6 +35,8 @@ public class TicketService {
     private final FeedbackRepository feedbackRepository;
     private final NotificationRepository notificationRepository;
     private final EmailNotificationQueueRepository emailQueueRepository;
+    private final TicketDraftRepository drafts;
+    private final ItAssetService assets;
 
     public TicketService(
             TicketRepository ticketRepository,
@@ -54,7 +56,9 @@ public class TicketService {
             UserCommentRepository userCommentRepository,
             FeedbackRepository feedbackRepository,
             NotificationRepository notificationRepository,
-            EmailNotificationQueueRepository emailQueueRepository
+            EmailNotificationQueueRepository emailQueueRepository,
+            TicketDraftRepository drafts,
+            ItAssetService assets
     ) {
         this.ticketRepository = ticketRepository;
         this.categoryRepository = categoryRepository;
@@ -74,6 +78,8 @@ public class TicketService {
         this.feedbackRepository = feedbackRepository;
         this.notificationRepository = notificationRepository;
         this.emailQueueRepository = emailQueueRepository;
+        this.drafts = drafts;
+        this.assets = assets;
     }
 
     @Transactional(rollbackFor = java.io.IOException.class)
@@ -83,6 +89,17 @@ public class TicketService {
         Ticket ticket = createTicket(universityId, categoryId, ticketType, subject, description, subtypeDetail, severity);
         attachmentService.store(ticket, attachment);
         return ticket;
+    }
+
+    @Transactional(rollbackFor = java.io.IOException.class)
+    public Ticket createTicketWithAsset(String universityId, Long categoryId, TicketType ticketType,
+            String subject, String description, String subtypeDetail, String severity,
+            org.springframework.web.multipart.MultipartFile attachment, Long assetId) throws java.io.IOException {
+        // The asset lock serializes ticket linking with inventory deletion and retirement.
+        ItAsset asset = assetId == null ? null : assets.forTicket(assetId, universityId);
+        Ticket ticket = createTicketWithAttachment(universityId, categoryId, ticketType, subject, description, subtypeDetail, severity, attachment);
+        ticket.setAsset(asset);
+        return ticketRepository.save(ticket);
     }
 
     @Transactional
@@ -110,9 +127,14 @@ public class TicketService {
         if (description == null || description.trim().isBlank()) {
             throw new IllegalArgumentException("Description is required.");
         }
+        if (description.length() > 20000) throw new IllegalArgumentException("Description cannot exceed 20000 characters.");
+        if (subtypeDetail != null && subtypeDetail.trim().length() > 150) throw new IllegalArgumentException("Subtype detail cannot exceed 150 characters.");
+        if (severity != null && severity.trim().length() > 30) throw new IllegalArgumentException("Severity cannot exceed 30 characters.");
 
         UserAccount user = userAccountRepository.findByUniversityId(universityId)
                 .orElseThrow(() -> new IllegalArgumentException("Authenticated user was not found."));
+
+        if (user.getAccountStatus() != AccountStatus.ACTIVE) throw new AccessDeniedException("Account is inactive.");
 
         Student student = studentRepository.findById(user.getUserId())
                 .orElseThrow(() -> new IllegalStateException("Student profile was not found."));
@@ -163,6 +185,7 @@ public class TicketService {
 
         notifyDestinationQueue(ticket);
         activityLogService.log(user, "TICKET_SUBMITTED", "TICKET", ticket.getTicketId(), null);
+        drafts.deleteById(user.getUserId());
 
         return ticket;
     }
@@ -177,7 +200,7 @@ public class TicketService {
     @Transactional(readOnly = true)
     public Ticket getStudentTicket(Long ticketId, String universityId) {
         Ticket ticket = ticketRepository.findById(ticketId)
-                .orElseThrow(() -> new IllegalArgumentException("Ticket was not found."));
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket was not found."));
 
         if (!ticket.getStudent().getUser().getUniversityId().equals(universityId)) {
             throw new org.springframework.security.access.AccessDeniedException("You cannot access this ticket.");
@@ -199,7 +222,7 @@ public class TicketService {
     @Transactional(readOnly = true)
     public Ticket getAuthorizedSupportTicket(Long ticketId, String universityId) {
         Ticket ticket = ticketRepository.findById(ticketId)
-                .orElseThrow(() -> new IllegalArgumentException("Ticket was not found."));
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket was not found."));
 
         UserAccount user = userAccountRepository.findByUniversityId(universityId)
                 .orElseThrow(() -> new IllegalArgumentException("User was not found."));
@@ -276,7 +299,7 @@ public class TicketService {
     @Transactional(readOnly = true)
     public Ticket getTicket(Long ticketId) {
         return ticketRepository.findById(ticketId)
-                .orElseThrow(() -> new IllegalArgumentException("Ticket was not found."));
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket was not found."));
     }
 
     @Transactional(readOnly = true)
@@ -308,6 +331,9 @@ public class TicketService {
                 .orElseThrow(() -> new IllegalArgumentException("User was not found."));
 
         TicketStatus oldStatus = ticket.getStatus();
+
+        if (newStatus == null) throw new IllegalArgumentException("Please choose a status.");
+        if (reason != null && reason.trim().length() > 500) throw new IllegalArgumentException("Status reason cannot exceed 500 characters.");
 
         if (oldStatus == newStatus) {
             return ticket;
@@ -383,7 +409,7 @@ public class TicketService {
                     UserAccount u = ud.getUser();
                     boolean isManager = userRoleRepository.findByUserUserIdAndActiveTrue(u.getUserId()).stream()
                             .anyMatch(ur -> "Department Manager".equals(ur.getRole().getRoleName()));
-                    if (isManager && !u.getUserId().equals(actor.getUserId())) {
+                    if (isManager && canReceiveSupportNotification(ticket, u) && !u.getUserId().equals(actor.getUserId())) {
                         notificationService.notifyUser(u, ticket, NotificationType.ESCALATED,
                                 "Ticket " + ticket.getReferenceNo() + " in " + dept.getDepartmentName() + " has been escalated.");
                         notifiedManager = true;
@@ -391,7 +417,7 @@ public class TicketService {
                 }
                 if (!notifiedManager) {
                     for (UserDepartment ud : deptMembers) {
-                        if (!ud.getUser().getUserId().equals(actor.getUserId())) {
+                        if (canReceiveSupportNotification(ticket, ud.getUser()) && !ud.getUser().getUserId().equals(actor.getUserId())) {
                             notificationService.notifyUser(ud.getUser(), ticket, NotificationType.ESCALATED,
                                     "Ticket " + ticket.getReferenceNo() + " in " + dept.getDepartmentName() + " has been escalated.");
                         }
@@ -399,7 +425,7 @@ public class TicketService {
                 }
             } else {
                 for (UserRole adminRole : userRoleRepository.findByRoleRoleNameAndActiveTrue("System Administrator")) {
-                    if (!adminRole.getUser().getUserId().equals(actor.getUserId())) {
+                    if (canReceiveSupportNotification(ticket, adminRole.getUser()) && !adminRole.getUser().getUserId().equals(actor.getUserId())) {
                         notificationService.notifyUser(
                                 adminRole.getUser(),
                                 ticket,
@@ -420,6 +446,9 @@ public class TicketService {
             TicketPriority newPriority,
             String changedByUniversityId
     ) {
+        // Serialize priority edits with assignment and status changes to avoid lost updates.
+        ticketRepository.findByIdWithLock(ticketId)
+                .orElseThrow(() -> new IllegalArgumentException("Ticket was not found."));
         Ticket ticket = getAuthorizedSupportTicket(ticketId, changedByUniversityId);
         UserAccount actor = userAccountRepository.findByUniversityId(changedByUniversityId)
                 .orElseThrow(() -> new IllegalArgumentException("User was not found."));
@@ -441,6 +470,7 @@ public class TicketService {
         );
 
         assignmentRepository.findFirstByTicketTicketIdAndStatusOrderByAssignedDateDesc(ticketId, AssignmentStatus.ACTIVE)
+                .filter(active -> canReceiveSupportNotification(ticket, active.getAssignedToUser()))
                 .ifPresent(active -> {
                     notificationService.notifyUser(
                             active.getAssignedToUser(),
@@ -453,6 +483,18 @@ public class TicketService {
         return ticket;
     }
 
+    @Transactional(readOnly = true)
+    public boolean canReceiveSupportNotification(Ticket ticket, UserAccount user) {
+        if (user == null || user.getAccountStatus() != AccountStatus.ACTIVE) return false;
+        var roles = userRoleRepository.findByUserUserIdAndActiveTrue(user.getUserId());
+        if (roles.stream().anyMatch(r -> "System Administrator".equals(r.getRole().getRoleName()))) return true;
+        if (roles.stream().noneMatch(r -> java.util.Set.of("Help Desk Support Staff", "Department Support Team Member", "Department Manager")
+                .contains(r.getRole().getRoleName()))) return false;
+        Department department = ticket.getCategory() == null ? null : ticket.getCategory().getDepartment();
+        return department != null && userDepartmentRepository.existsByUserUserIdAndDepartmentDepartmentIdAndActiveTrue(
+                user.getUserId(), department.getDepartmentId());
+    }
+
     private void notifyDestinationQueue(Ticket ticket) {
         Department department = ticket.getCategory().getDepartment();
 
@@ -463,6 +505,7 @@ public class TicketService {
                     );
 
             for (UserDepartment membership : memberships) {
+                if (!canReceiveSupportNotification(ticket, membership.getUser())) continue;
                 notificationService.notifyUser(
                         membership.getUser(),
                         ticket,
@@ -476,6 +519,7 @@ public class TicketService {
 
         for (UserRole adminRole :
                 userRoleRepository.findByRoleRoleNameAndActiveTrue("System Administrator")) {
+            if (!canReceiveSupportNotification(ticket, adminRole.getUser())) continue;
             notificationService.notifyUser(
                     adminRole.getUser(),
                     ticket,
@@ -520,10 +564,7 @@ public class TicketService {
         // Clean up physical attachments
         List<Attachment> attachments = attachmentRepository.findByTicketTicketId(ticketId);
         for (Attachment a : attachments) {
-            try {
-                attachmentService.deleteAttachment(a.getAttachmentId(), ticketId, studentUniversityId);
-            } catch (Exception ignored) {
-            }
+            attachmentService.deleteAttachment(a.getAttachmentId(), ticketId, studentUniversityId);
         }
 
         feedbackRepository.deleteByTicketTicketId(ticketId);

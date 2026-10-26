@@ -4,98 +4,30 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>University Help Desk - Login</title>
+    <title>SLIIT UNI Help Desk - Login</title>
 
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #f1f5f9;
-            margin: 0;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .login-card {
-            width: 380px;
-            background: white;
-            padding: 32px;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-        }
-
-        h1 {
-            color: #0f172a;
-            margin-bottom: 8px;
-        }
-
-        .subtitle {
-            color: #64748b;
-            margin-bottom: 24px;
-        }
-
-        label {
-            display: block;
-            margin-top: 16px;
-            margin-bottom: 6px;
-            font-weight: bold;
-        }
-
-        input {
-            width: 100%;
-            box-sizing: border-box;
-            padding: 11px;
-            border: 1px solid #cbd5e1;
-            border-radius: 6px;
-        }
-
-        button {
-            width: 100%;
-            margin-top: 22px;
-            padding: 12px;
-            border: none;
-            border-radius: 6px;
-            background: #2563eb;
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background: #1d4ed8;
-        }
-
-        .message {
-            padding: 10px;
-            border-radius: 6px;
-            margin-bottom: 15px;
-            font-size: 14px;
-        }
-
-        .error {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-
-        .success {
-            background: #dcfce7;
-            color: #166534;
-        }
-
-        .forgot {
-            display: block;
-            margin-top: 16px;
-            text-align: center;
-        }
-    </style>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
 
-<body>
+<body class="auth-page">
 
-<div class="login-card">
+<main class="auth-shell">
+<section class="auth-intro" aria-label="University Help Desk">
+    <a th:replace="~{fragments/university-brand :: auth}"></a>
+    <span class="page-eyebrow">YOUR CAMPUS SUPPORT HUB</span>
+    <h2>Campus support,<br>simplified.</h2>
+    <p>One place to get answers, request services, and keep track of the help you need.</p>
+    <div class="auth-services">
+        <div class="auth-service"><span>01</span>Find answers in the knowledge base</div>
+        <div class="auth-service"><span>02</span>Connect with your university support team</div>
+        <div class="auth-service"><span>03</span>Follow every update in one place</div>
+    </div>
+</section>
+<div class="auth-card">
 
-    <h1>University Help Desk</h1>
+
+    <span class="page-eyebrow">LET’S GET YOU CONNECTED</span>
+    <h1>Welcome back</h1>
 
     <p class="subtitle">
         Sign in using your University ID or email.
@@ -108,8 +40,8 @@
 
     <!-- Locked account -->
     <div th:if="${param.locked}" class="message error">
-        Your account is temporarily locked due to repeated failed login attempts.
-        Please try again after 15 minutes.
+        Your account is locked. For repeated failed attempts, try again after 15 minutes.
+        For an administrator lock, contact university support.
     </div>
 
     <!-- Disabled account -->
@@ -124,6 +56,9 @@
     </div>
 
     <!-- Successful logout -->
+    <div th:if="${param.expired}" class="message error">
+        Your account access has changed. Please sign in again.
+    </div>
     <div th:if="${param.logout}" class="message success">
         You have been logged out successfully.
     </div>
@@ -140,7 +75,7 @@
                 type="text"
                 required
                 autocomplete="username"
-                placeholder="University ID or Email">
+                placeholder="University ID or Email" pattern=".*\S.*" title="Enter a value containing more than spaces.">
 
         <label for="password">
             Password
@@ -154,7 +89,7 @@
                 autocomplete="current-password"
                 placeholder="Password">
 
-        <button type="submit">
+        <button type="submit" class="btn">
             Sign In
         </button>
 
@@ -164,7 +99,9 @@
         Forgot Password?
     </a>
 
+    <p class="auth-footnote">University Help Desk · Your campus, connected.</p>
 </div>
+</main>
 
 </body>
 </html>

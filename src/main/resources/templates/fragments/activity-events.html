@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"><body>
+        <div th:fragment="events(entries)" th:unless="${#lists.isEmpty(entries)}" class="table-responsive audit-table" tabindex="0" role="region" aria-label="Audit activity events">
+            <table><thead><tr><th scope="col">Date &amp; time</th><th scope="col">Actor</th><th scope="col">Activity</th><th scope="col">Resource</th><th scope="col">Origin</th></tr></thead><tbody>
+            <tr th:each="log : ${entries}">
+                <td><time th:datetime="${log.timestamp}" th:text="${#temporals.format(log.timestamp,'dd MMM yyyy')}"></time><small th:text="${#temporals.format(log.timestamp,'HH:mm:ss')}"></small></td>
+                <td><div th:if="${log.user != null}" class="audit-actor"><span class="audit-avatar" aria-hidden="true" th:text="${#strings.toUpperCase(#strings.substring(log.user.firstName,0,1) + #strings.substring(log.user.lastName,0,1))}">AB</span><div><strong th:text="${log.user.firstName + ' ' + log.user.lastName}"></strong><small th:text="${log.user.universityId}"></small></div></div><span th:if="${log.user == null}" class="audit-system">System / Anonymous</span></td>
+                <td><span class="audit-action" th:classappend="${#strings.containsIgnoreCase(log.action,'FAILED') or #strings.containsIgnoreCase(log.action,'LOCKED') ? 'security' : (#strings.containsIgnoreCase(log.action,'CREATED') or #strings.containsIgnoreCase(log.action,'SUBMITTED') ? 'created' : '')}" th:text="${#strings.capitalize(#strings.toLowerCase(#strings.replace(log.action,'_',' ')))}"></span><small class="audit-event-id" th:text="${'Event #' + log.logId}"></small></td>
+                <td><span class="audit-resource" th:text="${log.entityType != null ? #strings.capitalize(#strings.toLowerCase(#strings.replace(log.entityType,'_',' '))) : 'General'}"></span><small th:if="${log.entityId != null}" th:text="${'ID ' + log.entityId}"></small></td>
+                <td><span class="audit-ip" th:text="${log.ipAddress != null and !#strings.isEmpty(log.ipAddress) ? log.ipAddress : 'Not recorded'}"></span></td>
+            </tr></tbody></table>
+        </div>
+</body></html>

@@ -12,6 +12,9 @@ import java.util.List;
 import java.util.Optional;
 
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
+    @Query("SELECT n FROM Notification n WHERE n.user.userId = :userId AND (:unreadOnly = false OR n.readStatus = false) AND (:type IS NULL OR n.notificationType = :type)")
+    org.springframework.data.domain.Page<Notification> searchForUser(@Param("userId") Long userId, @Param("unreadOnly") boolean unreadOnly, @Param("type") NotificationType type, org.springframework.data.domain.Pageable pageable);
+    boolean existsByUserUserIdAndTicketTicketIdAndNotificationTypeAndMessage(Long userId,Long ticketId,NotificationType type,String message);
 
     List<Notification> findByUserUserIdOrderByCreatedDateDesc(Long userId);
 

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title th:text="${asset.assetTag + ' - IT Asset'}"></title><link rel="stylesheet" th:href="@{/css/app.css}"><link rel="stylesheet" th:href="@{/css/assets.css}"></head>
+<body class="app-page"><header th:replace="~{fragments/topbar :: topbar('assets')}"></header>
+<main class="container">
+    <div class="page-header page-hero"><div><div class="record-ref" th:text="${asset.assetTag}"></div><h1 class="page-title" th:text="${asset.assetName}"></h1><p class="page-subtitle" th:text="${asset.assetType.label + ' · ' + asset.location}"></p></div><div class="actions"><a class="btn" th:href="@{/admin/assets/{id}/edit(id=${asset.assetId})}">Edit asset</a><a class="btn secondary" th:href="@{/admin/assets}">← Inventory</a></div></div>
+    <div th:if="${success}" class="alert success" role="status" th:text="${success}"></div><div th:if="${error}" class="alert error" role="alert" th:text="${error}"></div>
+    <section class="card"><div class="section-heading"><h2>Asset details</h2><span th:class="${'asset-condition condition-' + #strings.toLowerCase(asset.condition)}" th:text="${asset.condition.label}"></span></div>
+        <dl class="asset-details">
+            <div><dt>Asset tag</dt><dd th:text="${asset.assetTag}"></dd></div><div><dt>Equipment type</dt><dd th:text="${asset.assetType.label}"></dd></div>
+            <div><dt>Serial number</dt><dd th:text="${#strings.isEmpty(asset.serialNumber) ? 'Not recorded' : asset.serialNumber}"></dd></div><div><dt>Department</dt><dd th:text="${asset.department.departmentName}"></dd></div>
+            <div><dt>Location</dt><dd th:text="${asset.location}"></dd></div><div><dt>Assigned to</dt><dd th:text="${asset.assignedUser == null ? 'Shared campus equipment' : asset.assignedUser.universityId + ' · ' + asset.assignedUser.firstName + ' ' + asset.assignedUser.lastName}"></dd></div>
+            <div><dt>Purchase date</dt><dd th:text="${asset.purchaseDate == null ? 'Not recorded' : #temporals.format(asset.purchaseDate, 'dd MMM yyyy')}"></dd></div><div><dt>Last updated</dt><dd th:text="${#temporals.format(asset.updatedDate, 'dd MMM yyyy, HH:mm')}"></dd></div>
+        </dl><div th:unless="${#strings.isEmpty(asset.notes)}"><h3>Equipment notes</h3><p class="asset-notes" th:text="${asset.notes}"></p></div>
+    </section>
+    <section class="card"><div class="section-heading"><div><div class="section-eyebrow">CONNECTED REQUESTS</div><h2>Support history</h2></div><span class="badge" th:text="${history.totalElements + ' tickets'}"></span></div>
+        <p th:if="${history.empty}" class="muted">No tickets are linked yet. Students can select this equipment when submitting a request.</p>
+        <div th:unless="${history.empty}" class="table-responsive" role="region" aria-label="Asset support history" tabindex="0"><table><thead><tr><th>Ticket</th><th>Subject</th><th>Submitted by</th><th>Status</th><th>Submitted</th></tr></thead><tbody><tr th:each="t : ${history.content}"><td><a th:href="@{/admin/tickets/{id}(id=${t.ticketId})}" th:text="${t.referenceNo}"></a></td><td th:text="${t.subject}"></td><td th:text="${t.student.user.universityId}"></td><td><span class="badge" th:text="${t.status}"></span></td><td th:text="${#temporals.format(t.createdDate, 'dd MMM yyyy')}"></td></tr></tbody></table></div>
+        <nav th:if="${history.totalPages > 1}" class="asset-pagination" aria-label="Support history pages"><a class="btn secondary btn-sm" th:if="${history.hasPrevious()}" th:href="@{/admin/assets/{id}(id=${asset.assetId},page=${history.number - 1})}">← Previous</a><span th:text="${'Page ' + (history.number + 1) + ' of ' + history.totalPages}"></span><a class="btn secondary btn-sm" th:if="${history.hasNext()}" th:href="@{/admin/assets/{id}(id=${asset.assetId},page=${history.number + 1})}">Next →</a></nav>
+    </section>
+    <section th:replace="~{fragments/asset-repairs :: reports(true)}"></section>
+    <section class="card asset-delete"><h2>Remove from inventory</h2><p class="muted" th:text="${history.totalElements > 0 or !#lists.isEmpty(repairReports) ? 'This asset has support or maintenance history. Retire it through Edit asset to preserve its linked tickets.' : 'Delete an incorrect or unused record. Deletion permanently removes the asset.'}"></p>
+        <form th:if="${history.totalElements == 0 and #lists.isEmpty(repairReports)}" th:action="@{/admin/assets/{id}/delete(id=${asset.assetId})}" method="post" data-confirm="Delete this asset permanently? This action cannot be undone."><button type="submit" class="btn danger">Delete asset</button></form>
+        <a th:if="${history.totalElements > 0 or !#lists.isEmpty(repairReports)}" class="btn secondary" th:href="@{/admin/assets/{id}/edit(id=${asset.assetId})}">Change condition / Retire asset</a>
+    </section>
+</main><script th:src="@{/js/admin-users.js}" defer></script></body></html>
